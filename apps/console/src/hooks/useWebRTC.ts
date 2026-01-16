@@ -23,6 +23,7 @@ export interface UseWebRTCOptions {
   reconnect?: ReconnectConfig;
   onTrack?: (track: MediaStreamTrack, stream: MediaStream) => void;
   onReconnectFailed?: () => void;
+  onIceGatheringComplete?: () => void;
 }
 
 export interface UseWebRTCReturn {
@@ -31,6 +32,8 @@ export interface UseWebRTCReturn {
   dataChannelState: RTCDataChannelState;
   remoteStream: MediaStream | null;
   reconnectAttempts: number;
+  iceGatheringState: RTCIceGatheringState;
+  iceConnectionState: RTCIceConnectionState;
   createOffer: () => Promise<void>;
   handleRemoteOffer: (offer: RTCSessionDescriptionInit) => Promise<void>;
   handleRemoteAnswer: (answer: RTCSessionDescriptionInit) => Promise<void>;
@@ -40,6 +43,8 @@ export interface UseWebRTCReturn {
     options?: RTCDataChannelInit
   ) => RTCDataChannel | null;
   disconnect: () => void;
+  restartIce: () => Promise<void>;
+  getConnectionStats: () => Promise<RTCStatsReport | null>;
 }
 
 export function useWebRTC({
@@ -49,6 +54,7 @@ export function useWebRTC({
   reconnect,
   onTrack,
   onReconnectFailed,
+  onIceGatheringComplete,
 }: UseWebRTCOptions): UseWebRTCReturn {
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const dataChannelRef = useRef<RTCDataChannel | null>(null);
@@ -62,6 +68,10 @@ export function useWebRTC({
     useState<RTCDataChannelState>('closed');
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
+  const [iceGatheringState, setIceGatheringState] =
+    useState<RTCIceGatheringState>('new');
+  const [iceConnectionState, setIceConnectionState] =
+    useState<RTCIceConnectionState>('new');
 
   const isConnected = connectionState === 'connected';
 
@@ -107,6 +117,19 @@ export function useWebRTC({
       }
     };
 
+    // Handle ICE connection state changes
+    pc.oniceconnectionstatechange = () => {
+      setIceConnectionState(pc.iceConnectionState);
+    };
+
+    // Handle ICE gathering state changes
+    pc.onicegatheringstatechange = () => {
+      setIceGatheringState(pc.iceGatheringState);
+      if (pc.iceGatheringState === 'complete') {
+        onIceGatheringComplete?.();
+      }
+    };
+
     // Handle incoming tracks
     pc.ontrack = (event) => {
       const stream = event.streams[0];
@@ -120,7 +143,7 @@ export function useWebRTC({
       }
       pc.close();
     };
-  }, [enabled, config.iceServers, signaling, onTrack, reconnect?.enabled]);
+  }, [enabled, config.iceServers, signaling, onTrack, reconnect?.enabled, onIceGatheringComplete]);
 
   // Schedule reconnection attempt
   const scheduleReconnect = useCallback(() => {
@@ -237,17 +260,40 @@ export function useWebRTC({
     }
   }, []);
 
+  // Restart ICE (for network changes)
+  const restartIce = useCallback(async () => {
+    const pc = peerConnectionRef.current;
+    if (!pc) return;
+
+    pc.restartIce();
+    const offer = await pc.createOffer({ iceRestart: true });
+    await pc.setLocalDescription(offer);
+    signaling.onLocalOffer(offer);
+  }, [signaling]);
+
+  // Get connection stats for diagnostics
+  const getConnectionStats = useCallback(async (): Promise<RTCStatsReport | null> => {
+    const pc = peerConnectionRef.current;
+    if (!pc) return null;
+
+    return pc.getStats();
+  }, []);
+
   return {
     connectionState,
     isConnected,
     dataChannelState,
     remoteStream,
     reconnectAttempts,
+    iceGatheringState,
+    iceConnectionState,
     createOffer,
     handleRemoteOffer,
     handleRemoteAnswer,
     addIceCandidate,
     createDataChannel,
     disconnect,
+    restartIce,
+    getConnectionStats,
   };
 }
