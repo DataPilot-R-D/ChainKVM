@@ -18,3 +18,11 @@ export type {
   UseWebRTCOptions,
   UseWebRTCReturn,
 } from './useWebRTC';
+
+export { useConnectionStats } from './useConnectionStats';
+export type {
+  ConnectionStats,
+  HealthStatus,
+  UseConnectionStatsOptions,
+  UseConnectionStatsReturn,
+} from './useConnectionStats';
