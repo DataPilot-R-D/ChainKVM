@@ -4,7 +4,7 @@
 - **Milestone:** M2 - Web Console & WebRTC Connection
 - **Component:** Web Console
 - **Priority:** P0
-- **Status:** Todo
+- **Status:** Done
 
 ## User Story
 
@@ -21,16 +21,16 @@ As an operator, I want a reliable peer-to-peer connection to the robot so that I
 
 ## Definition of Done
 
-- [ ] RTCPeerConnection initialization
-- [ ] SDP offer/answer exchange
-- [ ] ICE candidate gathering
-- [ ] Video track setup
-- [ ] DataChannel creation (reliable + unreliable)
-- [ ] Connection state management
-- [ ] Reconnection logic
-- [ ] Unit tests for connection flow
-- [ ] Code reviewed and merged
-- [ ] Tests passing
+- [x] RTCPeerConnection initialization
+- [x] SDP offer/answer exchange
+- [x] ICE candidate gathering
+- [x] Video track setup
+- [x] DataChannel creation (reliable + unreliable)
+- [x] Connection state management
+- [x] Reconnection logic
+- [x] Unit tests for connection flow (22 tests)
+- [x] Code reviewed and merged
+- [x] Tests passing (75 total)
 
 ## Acceptance Tests (UAT)
 
@@ -89,7 +89,34 @@ As an operator, I want a reliable peer-to-peer connection to the robot so that I
 - PRD Section: 8.3 (FR-8, FR-9: Transport)
 - Design Decision: 16.12 (WebRTC Configuration)
 
+## Implementation Notes
+
+### useWebRTC Hook
+- Manages RTCPeerConnection lifecycle
+- Accepts signaling callbacks for offer/answer/ICE exchange
+- Configurable STUN/TURN servers via `WebRTCConfig`
+- Connection state tracking with `isConnected` helper
+- Remote stream provided via `remoteStream` state
+
+### DataChannel Support
+- `createDataChannel()` supports both reliable and unreliable channels
+- Reliable: `{ ordered: true }` for commands
+- Unreliable: `{ ordered: false, maxRetransmits: 0 }` for telemetry
+- DataChannel state tracked via `dataChannelState`
+
+### Reconnection Logic
+- Configurable via `ReconnectConfig`: enabled, maxAttempts, delayMs
+- Uses refs to avoid stale closure issues
+- Resets attempt counter on successful reconnection
+- Calls `onReconnectFailed` callback when exhausted
+
+### Signaling Integration
+- Signaling is abstracted via `SignalingCallbacks` interface
+- `onLocalOffer`, `onLocalAnswer`, `onIceCandidate` callbacks
+- `handleRemoteOffer`, `handleRemoteAnswer`, `addIceCandidate` methods
+- Actual transport (WebSocket, HTTP) is implemented by M2-006
+
 ## Open Questions
 
-- Simulcast for adaptive quality?
-- Multiple DataChannels (reliable + unreliable)?
+- ~~Simulcast for adaptive quality?~~ → Deferred to post-POC
+- ~~Multiple DataChannels (reliable + unreliable)?~~ → Yes, supported

@@ -9,3 +9,12 @@ export type {
   KVMMouseCommand,
   UseMouseInputOptions,
 } from './useMouseInput';
+
+export { useWebRTC } from './useWebRTC';
+export type {
+  WebRTCConfig,
+  SignalingCallbacks,
+  ReconnectConfig,
+  UseWebRTCOptions,
+  UseWebRTCReturn,
+} from './useWebRTC';
