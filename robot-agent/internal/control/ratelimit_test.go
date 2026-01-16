@@ -123,3 +123,32 @@ func TestRateLimiterConfig_Apply(t *testing.T) {
 		t.Errorf("expected kvm limit 100, got %d", rl.limits[protocol.TypeKVMKey])
 	}
 }
+
+func TestRateLimiter_Reset(t *testing.T) {
+	rl := NewRateLimiter(10)
+
+	// Use up all tokens
+	rl.Allow(protocol.TypeDrive)
+
+	// Should be rate limited
+	if rl.Allow(protocol.TypeDrive) {
+		t.Error("should be rate limited before reset")
+	}
+
+	// Reset should restore tokens
+	rl.Reset()
+
+	// Should be allowed after reset
+	if !rl.Allow(protocol.TypeDrive) {
+		t.Error("should be allowed after reset")
+	}
+}
+
+func TestRateLimiter_UnknownType(t *testing.T) {
+	rl := NewRateLimiter(10)
+
+	// Unknown message type should be allowed by default
+	if !rl.Allow(protocol.TypePing) {
+		t.Error("unknown type should be allowed by default")
+	}
+}

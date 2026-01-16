@@ -1,11 +1,50 @@
 package control
 
 import (
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/datapilot/chainkvm/robot-agent/pkg/protocol"
 )
+
+func TestValidationError_Error(t *testing.T) {
+	tests := []struct {
+		name     string
+		err      ValidationError
+		contains []string
+	}{
+		{
+			name: "error with field",
+			err: ValidationError{
+				Code:    ErrOutOfRange,
+				Message: "value must be in range",
+				Field:   "velocity",
+			},
+			contains: []string{ErrOutOfRange, "value must be in range", "velocity"},
+		},
+		{
+			name: "error without field",
+			err: ValidationError{
+				Code:    ErrInvalidTimestamp,
+				Message: "timestamp is required",
+				Field:   "",
+			},
+			contains: []string{ErrInvalidTimestamp, "timestamp is required"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			errStr := tt.err.Error()
+			for _, substr := range tt.contains {
+				if !strings.Contains(errStr, substr) {
+					t.Errorf("Error() = %q, should contain %q", errStr, substr)
+				}
+			}
+		})
+	}
+}
 
 func TestValidator_ValidateDrive(t *testing.T) {
 	v := NewValidator(500 * time.Millisecond)
