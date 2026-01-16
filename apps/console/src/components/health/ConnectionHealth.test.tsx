@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ConnectionHealth } from './ConnectionHealth';
-import type { ConnectionStats, HealthStatus } from '../../hooks/useConnectionStats';
+import type { ConnectionStats } from '../../hooks/useConnectionStats';
 
 const mockStats: ConnectionStats = {
   rttMs: 45,
