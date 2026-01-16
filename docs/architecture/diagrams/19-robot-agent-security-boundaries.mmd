@@ -1,0 +1,48 @@
+flowchart TB
+    subgraph Untrusted[Untrusted Zone]
+        Console[Web Console]
+        Network[Internet/LAN]
+    end
+
+    subgraph TrustedEdge[Trusted Edge - Gateway]
+        GW[Gateway]
+        JWKS[JWKS Endpoint]
+    end
+
+    subgraph RobotDomain[Robot Domain - Trusted]
+        subgraph ValidationBoundary[Validation Boundary]
+            DC[DataChannel]
+            TokenVal[Token Validator]
+            MsgVal[Message Validator]
+        end
+
+        subgraph ExecutionBoundary[Execution Boundary]
+            Control[Control Module]
+            Safety[Safety Subsystem]
+        end
+
+        subgraph HardwareBoundary[Hardware Boundary]
+            Robot[Robot APIs]
+            Camera[Camera]
+        end
+    end
+
+    Console -->|SRTP/DTLS| DC
+    DC -->|JSON messages| TokenVal
+    TokenVal -->|Verified claims| MsgVal
+    MsgVal -->|Valid commands| Control
+
+    GW -.->|Provision| JWKS
+    JWKS -.->|Public key| TokenVal
+
+    Control -->|Execute| Robot
+    Safety -->|Safe-stop| Robot
+
+    Camera -->|Video| DC
+
+    style Untrusted fill:#fdd,stroke:#f00
+    style TrustedEdge fill:#dfd,stroke:#0a0
+    style RobotDomain fill:#ddf,stroke:#00f
+    style ValidationBoundary fill:#fff,stroke:#999
+    style ExecutionBoundary fill:#fff,stroke:#999
+    style HardwareBoundary fill:#fff,stroke:#999

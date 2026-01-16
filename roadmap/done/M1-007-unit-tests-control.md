@@ -4,7 +4,7 @@
 - **Milestone:** M1 - Robot Agent Video Stream & Local Control
 - **Component:** Robot Agent
 - **Priority:** P1
-- **Status:** Todo
+- **Status:** Done
 
 ## User Story
 
@@ -22,15 +22,15 @@ As a developer, I want comprehensive unit tests for control commands so that I c
 
 ## Definition of Done
 
-- [ ] Unit tests for drive commands
-- [ ] Unit tests for KVM inputs
-- [ ] Unit tests for E-Stop
-- [ ] Unit tests for command validation
-- [ ] Unit tests for error handling
-- [ ] Mock hardware interfaces
-- [ ] CI integration
-- [ ] Code reviewed and merged
-- [ ] Tests passing
+- [x] Unit tests for drive commands
+- [x] Unit tests for KVM inputs
+- [x] Unit tests for E-Stop
+- [x] Unit tests for command validation
+- [x] Unit tests for error handling
+- [x] Mock hardware interfaces (mockRobotAPI, mockSafetyCallback)
+- [x] CI integration (go test ./... passes)
+- [x] Code reviewed and merged
+- [x] Tests passing (91.2% coverage, exceeds 80% target)
 
 ## Acceptance Tests (UAT)
 

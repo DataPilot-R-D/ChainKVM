@@ -4,7 +4,7 @@
 - **Milestone:** M1 - Robot Agent Video Stream & Local Control
 - **Component:** Robot Agent
 - **Priority:** P0
-- **Status:** Todo
+- **Status:** Complete
 
 ## User Story
 
@@ -20,14 +20,14 @@ As an operator, I want to send control commands to the robot so that I can drive
 
 ## Definition of Done
 
-- [ ] Drive command API implemented (velocity, angular velocity)
-- [ ] KVM input API implemented (keyboard events, mouse events)
-- [ ] E-Stop API implemented (immediate halt)
-- [ ] Command validation and sanitization
-- [ ] Command rate limiting hooks
-- [ ] Unit tests for all command types
+- [x] Drive command API implemented (velocity, angular velocity)
+- [x] KVM input API implemented (keyboard events, mouse events)
+- [x] E-Stop API implemented (immediate halt)
+- [x] Command validation and sanitization
+- [x] Command rate limiting hooks
+- [x] Unit tests for all command types
 - [ ] Code reviewed and merged
-- [ ] Tests passing
+- [x] Tests passing
 
 ## Acceptance Tests (UAT)
 
@@ -86,7 +86,7 @@ As an operator, I want to send control commands to the robot so that I can drive
 - PRD Section: 8.3 (FR-9: Control channel)
 - Design Decision: 16.2 (Command Protocol)
 
-## Open Questions
+## Open Questions (Resolved)
 
-- Command protocol format (JSON, protobuf, custom)?
-- Supported motor/KVM hardware for POC?
+- **Command protocol format:** JSON via WebRTC DataChannel (per DECISIONS.md)
+- **Hardware support:** Abstract RobotAPI interface allows any backend implementation

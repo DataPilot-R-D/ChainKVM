@@ -1,0 +1,37 @@
+sequenceDiagram
+    participant Console
+    participant DC as DataChannel
+    participant Validator
+    participant RateLimit as Rate Limiter
+    participant Dispatcher
+    participant Robot as Robot APIs
+    participant Safety as Safety Monitor
+
+    Console->>DC: drive(v=0.5, w=0.1, t=123456)
+    DC->>Validator: Parse JSON message
+
+    alt Valid message
+        Validator->>Validator: Check schema
+        Validator->>Validator: Check timestamp
+        Validator->>Validator: Check scope
+        Validator->>RateLimit: Forward valid msg
+
+        alt Within rate limit
+            RateLimit->>Dispatcher: Allow
+            Dispatcher->>Robot: Execute drive(0.5, 0.1)
+            Robot-->>Dispatcher: OK
+            Dispatcher-->>DC: ack
+            DC-->>Console: ack
+        else Rate exceeded
+            RateLimit-->>DC: dropped (no error)
+        end
+    else Invalid message
+        Validator->>Safety: Increment invalid count
+        Validator-->>DC: error
+        DC-->>Console: error
+
+        alt Threshold exceeded
+            Safety->>Robot: SAFE-STOP
+            Safety->>DC: Close
+        end
+    end
