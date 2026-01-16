@@ -1,0 +1,23 @@
+sequenceDiagram
+  autonumber
+  actor Admin
+  participant AdminAPI as Admin API/CLI
+  participant PolicyStore as Policy Store
+  participant Pub as Policy Update Publisher
+  participant GW1 as Gateway Instance A
+  participant GW2 as Gateway Instance B
+
+  Admin->>AdminAPI: Update policy (new snapshot)
+  AdminAPI->>PolicyStore: Persist snapshot {policy_id, version, hash}
+  PolicyStore-->>AdminAPI: OK
+
+  PolicyStore->>Pub: Emit POLICY_UPDATED {policy_id, version, hash}
+  Pub-->>GW1: POLICY_UPDATED event
+  Pub-->>GW2: POLICY_UPDATED event
+
+  GW1->>PolicyStore: Fetch snapshot by version/hash
+  GW2->>PolicyStore: Fetch snapshot by version/hash
+  GW1->>GW1: Hot-swap in-memory policy snapshot
+  GW2->>GW2: Hot-swap in-memory policy snapshot
+
+  Note over GW1,GW2: New sessions use updated policy immediately.<br/>Active sessions may remain as-is unless configured to revoke-on-update.

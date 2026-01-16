@@ -1,0 +1,47 @@
+flowchart TB
+  subgraph OperatorNet["Operator Network"]
+    Browser["Browser (Web Console)"]
+  end
+
+  subgraph EdgeZone["Edge / Gateway Zone"]
+    Gateway["Gateway Service"]
+    Signaling["Signaling (WebSocket)"]
+    PolicyToken["Policy + Token Services"]
+    AuditPub["Audit Publisher (async)"]
+  end
+
+  subgraph RobotNet["Robot Site Network"]
+    Robot["Robot Agent"]
+    Camera["Camera"]
+    ControlHW["Robot Control HW"]
+  end
+
+  subgraph LedgerNet["Ledger Network"]
+    Fabric["Hyperledger Fabric"]
+  end
+
+  subgraph RTCInfra["RTC Infra (public)"]
+    STUN["STUN"]
+    TURN["TURN"]
+    SFU["(Optional) SFU"]
+  end
+
+  Browser -->|HTTPS| Gateway
+  Browser <-->|WS| Signaling
+  Robot <-->|WS| Signaling
+  Browser <-->|WebRTC (media/control)| Robot
+
+  Browser -.-> STUN
+  Robot -.-> STUN
+  Browser -.-> TURN
+  Robot -.-> TURN
+  Browser -.-> SFU
+  Robot -.-> SFU
+
+  Gateway --> PolicyToken
+  Gateway --> AuditPub
+  AuditPub -->|async| Fabric
+
+  Robot --> Camera
+  Robot --> ControlHW
+

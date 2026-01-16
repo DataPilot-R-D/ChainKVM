@@ -1,0 +1,35 @@
+sequenceDiagram
+  autonumber
+  actor Operator
+  participant Console as Web Console
+  participant Issuer as VC Issuer
+  participant Gateway as Policy+Session Gateway
+  participant Robot as Robot Agent
+  participant Ledger as Fabric Ledger
+
+  Operator->>Console: Open console, select robot
+  Console->>Issuer: Obtain VC/VP (out-of-band)
+  Issuer-->>Console: Verifiable Credential (VC/VP)
+
+  Console->>Gateway: POST /v1/sessions {robot_id, vc/vp, requested_scope}
+  Gateway->>Gateway: Verify VC (issuer, signature, expiry)
+  Gateway->>Gateway: Evaluate policy snapshot
+  Gateway-->>Console: {session_id, capability_token, signaling_url, ice_servers}
+
+  Console->>Gateway: WS connect /v1/signal (Authorization: Bearer token)
+  Robot->>Gateway: WS connect /v1/signal (Authorization: Bearer token)
+  Note over Console,Robot: SDP offer/answer + ICE candidates relayed via Gateway
+
+  Console->>Robot: Establish WebRTC PeerConnection (DTLS-SRTP)
+  Console->>Robot: DataChannel open
+  Console->>Robot: auth {session_id, capability_token}
+  Robot->>Robot: Validate token (sig, exp, scope, sid)
+  Robot-->>Console: auth_ok
+
+  par Async audit
+    Gateway->>Ledger: SESSION_GRANTED / SESSION_STARTED (async)
+  and Media/control
+    Robot-->>Console: Video frames (SRTP)
+    Console-->>Robot: Control messages (DataChannel)
+  end
+

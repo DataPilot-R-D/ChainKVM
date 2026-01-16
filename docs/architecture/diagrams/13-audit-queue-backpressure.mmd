@@ -1,0 +1,19 @@
+flowchart TB
+  Evt["Audit event generated<br/>(SESSION_* / PRIVILEGED_ACTION)"] --> Q["Enqueue (fast, non-blocking)"]
+  Q -->|buffered| Store["Durable spool (optional POC)"]
+  Q --> C["Background consumer"]
+  C -->|publish| Ledger["Fabric ledger"]
+  Ledger -->|ack| C
+  C -->|success| Done["Mark committed"]
+  C -->|fail/retry| Retry["Retry with backoff"]
+
+  subgraph Protection["Backpressure / resilience"]
+    QDepth["Queue depth / oldest age metrics"]
+    CB["Circuit breaker"]
+    Drop["Drop/aggregate non-critical events<br/>(avoid logging those by default)"]
+  end
+
+  Q --> QDepth
+  C --> CB
+  CB -->|open| Retry
+  QDepth -->|over limit| Drop

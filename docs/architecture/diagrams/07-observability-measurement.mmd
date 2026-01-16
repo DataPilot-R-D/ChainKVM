@@ -1,0 +1,15 @@
+flowchart LR
+  Console["Web Console"]
+  Gateway["Gateway"]
+  Robot["Robot Agent"]
+  Store["Metrics Store"]
+  Aggregator["Aggregator (p50/p95/p99)"]
+  Report["Report (HTML/CSV/JSON)"]
+
+  Console -->|ICE timing + getStats + RTT samples| Store
+  Gateway -->|auth/policy/token timings| Store
+  Robot -->|capture timestamps + control receive rate| Store
+
+  Store --> Aggregator
+  Aggregator --> Report
+

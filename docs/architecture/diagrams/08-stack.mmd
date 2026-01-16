@@ -1,0 +1,38 @@
+flowchart TB
+  subgraph UI["UI"]
+    Web["Web Console: TypeScript + React"]
+  end
+
+  subgraph GatewayLayer["Gateway"]
+    GW["Gateway API: Node.js + TypeScript"]
+    DIDVC["DID/VC verification"]
+    Policy["Policy engine (simple ABAC)"]
+    Tokens["JWT capability tokens (EdDSA / Ed25519)"]
+    WS["WebSocket signaling"]
+    Queue["Async audit queue + publisher"]
+  end
+
+  subgraph RobotLayer["Robot Agent"]
+    RA["Robot Agent: Go (Pion WebRTC)"]
+    Media["Video capture/encode: GStreamer (typical)"]
+    Control["Control handlers + rate limits + safe-stop"]
+  end
+
+  subgraph LedgerLayer["Ledger"]
+    Fabric["Hyperledger Fabric + chaincode"]
+  end
+
+  subgraph Infra["Infra"]
+    StunTurn["STUN/TURN (coturn)"]
+    Obs["Metrics: files/DB + optional OTel/Prometheus"]
+  end
+
+  Web --> GW
+  GW --> RA
+  Queue --> Fabric
+  Web --- StunTurn
+  RA --- StunTurn
+
+  Web --> Obs
+  GW --> Obs
+  RA --> Obs

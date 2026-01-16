@@ -1,0 +1,8 @@
+stateDiagram-v2
+  [*] --> Idle
+  Idle --> Active: control authorized
+  Active --> SafeStop: E_STOP
+  Active --> SafeStop: control channel loss
+  Active --> SafeStop: invalid command threshold
+  SafeStop --> Idle: reset / session end
+

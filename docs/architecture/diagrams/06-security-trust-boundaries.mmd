@@ -1,0 +1,40 @@
+flowchart LR
+  classDef note fill:#f7f7f7,stroke:#999,stroke-dasharray: 4 4,color:#111;
+
+  subgraph Untrusted["Untrusted / Client-controlled"]
+    Console["Web Console (browser)"]
+    OperatorDID["Operator DID keypair"]
+  end
+
+  subgraph TrustedEdge["Trusted Edge Boundary"]
+    Gateway["Gateway"]
+    GatewayKey["Gateway signing key"]
+    IssuerAllow["Trusted issuer list"]
+    Policy["Policy snapshot"]
+    Revocations["Revocation cache"]
+  end
+
+  subgraph RobotDomain["Robot Domain"]
+    Robot["Robot Agent"]
+    RobotDID["Robot DID keypair"]
+    Safety["Local safety path"]
+  end
+
+  subgraph LedgerDomain["Ledger Domain"]
+    Fabric["Fabric ledger"]
+  end
+
+  Console -->|VC/VP (issuer-signed)| Gateway
+  Gateway -->|verify issuer+signature| IssuerAllow
+
+  Gateway -->|issue JWT capability| GatewayKey
+  Console -->|present JWT capability| Robot
+  Robot -->|verify JWT sig/exp/scope| GatewayKey
+
+  Console <-->|DTLS-SRTP + SCTP (WebRTC)| Robot
+  Robot --> Safety
+
+  Gateway -->|async audit events| Fabric
+  LedgerNote["Ledger is asynchronous and off the control path"]:::note
+  Gateway --- LedgerNote
+  Fabric --- LedgerNote

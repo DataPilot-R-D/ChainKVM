@@ -1,0 +1,22 @@
+flowchart LR
+  Console["Web Console"]
+  Robot["Robot Agent"]
+  Gateway["Gateway"]
+  Ledger["Fabric Ledger"]
+  Metrics["Metrics Store"]
+
+  Robot -->|SRTP video| Console
+  Console -->|DataChannel control| Robot
+
+  Console -.->|RTT ping| Robot
+  Robot -.->|RTT pong| Console
+
+  Console -->|session state + signaling keepalive| Gateway
+  Robot -->|session state + signaling keepalive| Gateway
+
+  Gateway -->|audit events (async queue)| Ledger
+
+  Console -->|ICE timing + getStats| Metrics
+  Gateway -->|auth/policy timings| Metrics
+  Robot -->|capture timestamps + receive rate| Metrics
+

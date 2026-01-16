@@ -1,0 +1,33 @@
+classDiagram
+  class CapabilityToken {
+    +string sub
+    +string aud
+    +string sid
+    +string[] scope
+    +int exp
+    +string nonce
+    +string jti
+  }
+
+  class AuditEvent {
+    +string event_id
+    +string timestamp
+    +string robot_id
+    +string operator_did
+    +string session_id
+    +string event_type
+    +map metadata
+  }
+
+  class MetricSample {
+    +string session_id
+    +string metric
+    +number value
+    +string unit
+    +string ts
+    +map tags
+  }
+
+  AuditEvent --> CapabilityToken : references session/actor
+  MetricSample --> CapabilityToken : references session_id
+

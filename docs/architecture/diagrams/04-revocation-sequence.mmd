@@ -1,0 +1,21 @@
+sequenceDiagram
+  autonumber
+  actor Admin
+  participant Gateway
+  participant Console
+  participant Robot
+  participant Ledger
+
+  Admin->>Gateway: POST /v1/revocations {session_id|operator_did, reason}
+  Gateway->>Gateway: Update revocation cache
+
+  par Terminate session
+    Gateway-->>Console: WS event revoked {session_id, reason}
+    Gateway-->>Robot: TerminateSession(session_id)
+  and Safety
+    Robot->>Robot: Enter safe-state
+    Robot-->>Console: PeerConnection/DataChannel close
+  and Audit
+    Gateway->>Ledger: SESSION_REVOKED (async)
+  end
+

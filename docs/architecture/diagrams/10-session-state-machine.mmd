@@ -1,0 +1,12 @@
+stateDiagram-v2
+  [*] --> Requested
+  Requested --> Granted: policy allow
+  Requested --> Denied: policy deny
+  Granted --> Signaling: signaling established
+  Signaling --> Connected: WebRTC connected + auth_ok
+  Connected --> Revoked: admin revoke
+  Connected --> Ended: normal teardown
+  Revoked --> Ended
+  Denied --> [*]
+  Ended --> [*]
+

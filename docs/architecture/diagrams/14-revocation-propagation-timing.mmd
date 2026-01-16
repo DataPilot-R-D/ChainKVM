@@ -1,0 +1,23 @@
+sequenceDiagram
+  autonumber
+  actor Admin
+  participant Gateway
+  participant Console
+  participant Robot
+  participant Ledger
+
+  Admin->>Gateway: POST /v1/revocations {sid, reason}
+  Gateway->>Gateway: Update revocation cache (immediate)
+
+  par Propagate revoke
+    Gateway-->>Console: WS event revoked {sid, reason}
+    Gateway-->>Robot: WS event revoked {sid, reason}
+  and Robot safety
+    Robot->>Robot: Enter safe-stop
+    Robot-->>Console: PeerConnection close
+  and Async audit
+    Gateway->>Ledger: SESSION_REVOKED (async)
+  end
+
+  Note over Admin,Robot: Measure: revoke accepted → safe-stop entered (target sub-second)
+

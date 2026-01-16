@@ -1,0 +1,21 @@
+sequenceDiagram
+  autonumber
+  participant Console
+  participant Gateway as Signaling (WS)
+  participant Robot
+
+  Note over Console,Robot: Transient network loss occurs
+  Console--xRobot: DataChannel drops
+  Robot->>Robot: Safe-stop after CONTROL_LOSS_TIMEOUT_MS
+
+  Console->>Gateway: WS still connected (or reconnect)
+  Console->>Gateway: ICE restart / renegotiation messages
+  Gateway-->>Robot: Relay renegotiation
+
+  Console->>Robot: PeerConnection re-established
+  Console->>Robot: DataChannel open
+  Console->>Robot: auth {sid, token}
+  Robot->>Robot: Verify token not expired/revoked, sid binding OK
+  Robot-->>Console: auth_ok
+  Note over Console,Robot: Operator can resume control (still within policy/TTL)
+

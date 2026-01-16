@@ -1,0 +1,73 @@
+flowchart LR
+  subgraph OperatorEnv["Operator Environment"]
+    Console["Web Console (Browser)"]
+  end
+
+  subgraph AdminEnv["Admin Environment"]
+    AdminUI["Admin UI / CLI"]
+  end
+
+  subgraph Edge["Edge / Gateway"]
+    Gateway["Policy + Session Gateway"]
+    PolicyStore["Policy Snapshot Store"]
+    RevocationCache["Revocation Cache"]
+    AuditQueue["Async Audit Queue"]
+  end
+
+  subgraph RobotSite["Robot Site"]
+    Robot["Robot Agent"]
+    Safety["Local Safety Path"]
+  end
+
+  subgraph LedgerNet["Permissioned Ledger"]
+    Fabric["Hyperledger Fabric"]
+    Chaincode["Audit Chaincode"]
+  end
+
+  subgraph Identity["Identity"]
+    Issuer["VC Issuer (POC)"]
+    DIDResolver["DID Resolver (did:key / did:web)"]
+  end
+
+  subgraph RTCInfra["RTC Infrastructure"]
+    STUN["STUN"]
+    TURN["TURN"]
+    SFU["(Optional) SFU/Relay"]
+  end
+
+  subgraph Observability["Observability"]
+    Metrics["Metrics Store"]
+    Report["Report Generator"]
+  end
+
+  AdminUI -->|revoke / policy update| Gateway
+  Issuer -->|issue VC| Console
+
+  Console -->|session request + VC/VP| Gateway
+  Gateway -->|resolve DID keys| DIDResolver
+  Gateway -->|capability token + session params| Console
+
+  Console <-->|WS signaling (SDP/ICE)| Gateway
+  Robot <-->|WS signaling (SDP/ICE)| Gateway
+
+  Console <-->|WebRTC: video (SRTP)| Robot
+  Console <-->|WebRTC: control (DataChannel)| Robot
+
+  Console -.->|ICE candidates| STUN
+  Robot -.->|ICE candidates| STUN
+  Console -.->|relay fallback| TURN
+  Robot -.->|relay fallback| TURN
+  Console -.->|optional media relay| SFU
+  Robot -.->|optional media relay| SFU
+
+  Robot -->|safe-stop triggers| Safety
+
+  Gateway -->|enqueue audit events| AuditQueue
+  AuditQueue -->|async publish| Fabric
+  Fabric --> Chaincode
+
+  Console -->|metrics| Metrics
+  Gateway -->|metrics| Metrics
+  Robot -->|metrics| Metrics
+  Metrics --> Report
+
