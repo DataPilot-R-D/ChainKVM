@@ -2,6 +2,7 @@
 package control
 
 import (
+	"log"
 	"sync"
 	"time"
 
@@ -10,9 +11,11 @@ import (
 
 // RateLimiterConfig holds rate limits for different command types.
 type RateLimiterConfig struct {
-	DriveHz int
-	KVMHz   int
-	EStopHz int // Note: E-stop always bypasses rate limiting for safety
+	DriveHz    int
+	KVMHz      int
+	EStopHz    int // Note: E-stop always bypasses rate limiting for safety
+	BurstSize  int // Maximum burst allowance (tokens accumulated when idle)
+	LogDenials bool // Whether to log rate limit denials
 }
 
 // tokenBucket implements a simple token bucket rate limiter.
@@ -24,10 +27,14 @@ type tokenBucket struct {
 	lastRefill time.Time
 }
 
-func newTokenBucket(hz int) *tokenBucket {
+func newTokenBucket(hz int, burstSize int) *tokenBucket {
+	maxTokens := float64(burstSize)
+	if maxTokens < 1 {
+		maxTokens = 1
+	}
 	return &tokenBucket{
-		tokens:     1, // Start with 1 token
-		maxTokens:  1, // No burst beyond 1
+		tokens:     maxTokens, // Start with full burst capacity
+		maxTokens:  maxTokens,
 		refillRate: float64(hz),
 		lastRefill: time.Now(),
 	}
@@ -58,38 +65,46 @@ func (b *tokenBucket) allow() bool {
 
 // RateLimiter enforces rate limits on control commands.
 type RateLimiter struct {
-	mu      sync.RWMutex
-	buckets map[protocol.MessageType]*tokenBucket
-	limits  map[protocol.MessageType]int
+	mu         sync.RWMutex
+	buckets    map[protocol.MessageType]*tokenBucket
+	limits     map[protocol.MessageType]int
+	logDenials bool
 }
 
 // NewRateLimiter creates a rate limiter with a default Hz for all types.
 func NewRateLimiter(defaultHz int) *RateLimiter {
 	return NewRateLimiterWithConfig(RateLimiterConfig{
-		DriveHz: defaultHz,
-		KVMHz:   defaultHz,
-		EStopHz: defaultHz,
+		DriveHz:   defaultHz,
+		KVMHz:     defaultHz,
+		EStopHz:   defaultHz,
+		BurstSize: 1,
 	})
 }
 
 // NewRateLimiterWithConfig creates a rate limiter with specific config.
 func NewRateLimiterWithConfig(cfg RateLimiterConfig) *RateLimiter {
+	burstSize := cfg.BurstSize
+	if burstSize < 1 {
+		burstSize = 1
+	}
+
 	rl := &RateLimiter{
-		buckets: make(map[protocol.MessageType]*tokenBucket),
-		limits:  make(map[protocol.MessageType]int),
+		buckets:    make(map[protocol.MessageType]*tokenBucket),
+		limits:     make(map[protocol.MessageType]int),
+		logDenials: cfg.LogDenials,
 	}
 
 	// Configure buckets for each type
-	rl.buckets[protocol.TypeDrive] = newTokenBucket(cfg.DriveHz)
+	rl.buckets[protocol.TypeDrive] = newTokenBucket(cfg.DriveHz, burstSize)
 	rl.limits[protocol.TypeDrive] = cfg.DriveHz
 
-	rl.buckets[protocol.TypeKVMKey] = newTokenBucket(cfg.KVMHz)
+	rl.buckets[protocol.TypeKVMKey] = newTokenBucket(cfg.KVMHz, burstSize)
 	rl.limits[protocol.TypeKVMKey] = cfg.KVMHz
 
-	rl.buckets[protocol.TypeKVMMouse] = newTokenBucket(cfg.KVMHz)
+	rl.buckets[protocol.TypeKVMMouse] = newTokenBucket(cfg.KVMHz, burstSize)
 	rl.limits[protocol.TypeKVMMouse] = cfg.KVMHz
 
-	rl.buckets[protocol.TypeEStop] = newTokenBucket(cfg.EStopHz)
+	rl.buckets[protocol.TypeEStop] = newTokenBucket(cfg.EStopHz, burstSize)
 	rl.limits[protocol.TypeEStop] = cfg.EStopHz
 
 	return rl
@@ -105,6 +120,8 @@ func (rl *RateLimiter) Allow(msgType protocol.MessageType) bool {
 
 	rl.mu.RLock()
 	bucket, ok := rl.buckets[msgType]
+	logDenials := rl.logDenials
+	limit := rl.limits[msgType]
 	rl.mu.RUnlock()
 
 	if !ok {
@@ -112,7 +129,12 @@ func (rl *RateLimiter) Allow(msgType protocol.MessageType) bool {
 		return true
 	}
 
-	return bucket.allow()
+	allowed := bucket.allow()
+	if !allowed && logDenials {
+		log.Printf("rate limit exceeded: type=%s limit=%d Hz", msgType, limit)
+	}
+
+	return allowed
 }
 
 // Reset resets all rate limiters (e.g., for new session).

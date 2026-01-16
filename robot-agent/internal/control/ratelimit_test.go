@@ -152,3 +152,107 @@ func TestRateLimiter_UnknownType(t *testing.T) {
 		t.Error("unknown type should be allowed by default")
 	}
 }
+
+func TestRateLimiterConfig_BurstSize(t *testing.T) {
+	cfg := RateLimiterConfig{
+		DriveHz:   10,
+		KVMHz:     10,
+		EStopHz:   10,
+		BurstSize: 5, // Allow burst of 5 commands
+	}
+
+	rl := NewRateLimiterWithConfig(cfg)
+
+	// Should allow burst of 5 rapid requests
+	allowed := 0
+	for i := 0; i < 10; i++ {
+		if rl.Allow(protocol.TypeDrive) {
+			allowed++
+		}
+	}
+
+	// Should have allowed exactly 5 (burst capacity)
+	if allowed != 5 {
+		t.Errorf("expected 5 allowed with burst size 5, got %d", allowed)
+	}
+}
+
+func TestRateLimiterConfig_BurstSizeDefault(t *testing.T) {
+	cfg := RateLimiterConfig{
+		DriveHz:   10,
+		KVMHz:     10,
+		EStopHz:   10,
+		BurstSize: 0, // Should default to 1
+	}
+
+	rl := NewRateLimiterWithConfig(cfg)
+
+	// First request allowed
+	if !rl.Allow(protocol.TypeDrive) {
+		t.Error("first request should be allowed")
+	}
+
+	// Second rapid request denied (burst size defaulted to 1)
+	if rl.Allow(protocol.TypeDrive) {
+		t.Error("second rapid request should be denied with default burst size")
+	}
+}
+
+func TestRateLimiterConfig_LogDenials(t *testing.T) {
+	cfg := RateLimiterConfig{
+		DriveHz:    10,
+		KVMHz:      10,
+		EStopHz:    10,
+		BurstSize:  1,
+		LogDenials: true,
+	}
+
+	rl := NewRateLimiterWithConfig(cfg)
+
+	// Verify logDenials is set
+	if !rl.logDenials {
+		t.Error("logDenials should be true")
+	}
+
+	// Use up token and trigger denial (log output verified manually or via log capture)
+	rl.Allow(protocol.TypeDrive)
+	rl.Allow(protocol.TypeDrive) // This should log
+}
+
+func TestRateLimiter_BurstRefill(t *testing.T) {
+	cfg := RateLimiterConfig{
+		DriveHz:   100, // 100 Hz = 10ms per token
+		KVMHz:     100,
+		EStopHz:   100,
+		BurstSize: 3,
+	}
+
+	rl := NewRateLimiterWithConfig(cfg)
+
+	// Use all burst tokens
+	for i := 0; i < 3; i++ {
+		if !rl.Allow(protocol.TypeDrive) {
+			t.Errorf("burst request %d should be allowed", i+1)
+		}
+	}
+
+	// Should be rate limited
+	if rl.Allow(protocol.TypeDrive) {
+		t.Error("should be rate limited after burst exhausted")
+	}
+
+	// Wait for partial refill (30ms = 3 tokens at 100 Hz)
+	time.Sleep(35 * time.Millisecond)
+
+	// Should allow at least 2-3 more requests after refill
+	allowed := 0
+	for i := 0; i < 5; i++ {
+		if rl.Allow(protocol.TypeDrive) {
+			allowed++
+		}
+	}
+
+	if allowed < 2 {
+		t.Errorf("expected at least 2 allowed after refill, got %d", allowed)
+	}
+}

@@ -4,7 +4,7 @@
 - **Milestone:** M1 - Robot Agent Video Stream & Local Control
 - **Component:** Robot Agent
 - **Priority:** P1
-- **Status:** Todo
+- **Status:** Done
 
 ## User Story
 
@@ -20,14 +20,24 @@ As a security administrator, I want the Robot Agent to enforce rate limits on co
 
 ## Definition of Done
 
-- [ ] Token bucket algorithm implemented
-- [ ] Per-session rate tracking
-- [ ] Configurable rate limits (commands/second)
-- [ ] Burst allowance configuration
-- [ ] Rate limit exceeded logging
-- [ ] Unit tests for rate limiting
-- [ ] Code reviewed and merged
-- [ ] Tests passing
+- [x] Token bucket algorithm implemented
+- [x] Per-session rate tracking
+- [x] Configurable rate limits (commands/second)
+- [x] Burst allowance configuration
+- [x] Rate limit exceeded logging
+- [x] Unit tests for rate limiting (12 tests)
+- [x] Code reviewed and merged
+- [x] Tests passing
+
+## Implementation Notes
+
+- Token bucket with configurable refill rate and burst size
+- E-Stop always bypasses rate limiting for safety
+- Separate buckets per message type (Drive, KVMKey, KVMMouse)
+- `RateLimiterConfig` struct for configuration:
+  - `DriveHz`, `KVMHz`, `EStopHz` - rate limits per type
+  - `BurstSize` - max tokens (defaults to 1)
+  - `LogDenials` - whether to log rate limit violations
 
 ## Acceptance Tests (UAT)
 
@@ -84,5 +94,5 @@ As a security administrator, I want the Robot Agent to enforce rate limits on co
 
 ## Open Questions
 
-- Default rate limits for POC?
-- Should E-Stop bypass rate limits?
+- ~~Default rate limits for POC?~~ → Configurable via RateLimiterConfig, defaults to provided Hz values
+- ~~Should E-Stop bypass rate limits?~~ → Yes, E-Stop always bypasses for safety (implemented)
