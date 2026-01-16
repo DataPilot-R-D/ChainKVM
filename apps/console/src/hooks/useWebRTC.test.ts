@@ -53,6 +53,8 @@ class MockRTCPeerConnection {
 
   getStats = vi.fn().mockResolvedValue(new Map());
 
+  restartIce = vi.fn();
+
   // Helper to simulate connection state changes
   simulateConnectionState(state: RTCPeerConnectionState) {
     this.connectionState = state;
@@ -625,6 +627,112 @@ describe('useWebRTC', () => {
       });
 
       expect(mockPeerConnection.close).toHaveBeenCalled();
+    });
+  });
+
+  describe('ICE restart', () => {
+    it('should restart ICE when called', async () => {
+      const signaling = createMockSignaling();
+
+      const { result } = renderHook(() =>
+        useWebRTC({ config: defaultConfig, signaling })
+      );
+
+      await act(async () => {
+        await result.current.restartIce();
+      });
+
+      expect(mockPeerConnection.restartIce).toHaveBeenCalled();
+      expect(mockPeerConnection.createOffer).toHaveBeenCalledWith({
+        iceRestart: true,
+      });
+    });
+
+    it('should send new offer after ICE restart', async () => {
+      const signaling = createMockSignaling();
+
+      const { result } = renderHook(() =>
+        useWebRTC({ config: defaultConfig, signaling })
+      );
+
+      await act(async () => {
+        await result.current.restartIce();
+      });
+
+      expect(signaling.onLocalOffer).toHaveBeenCalled();
+    });
+  });
+
+  describe('connection diagnostics', () => {
+    it('should track ICE gathering state', () => {
+      const signaling = createMockSignaling();
+
+      const { result } = renderHook(() =>
+        useWebRTC({ config: defaultConfig, signaling })
+      );
+
+      expect(result.current.iceGatheringState).toBe('new');
+
+      act(() => {
+        mockPeerConnection.iceGatheringState = 'gathering';
+        mockPeerConnection.onicegatheringstatechange?.();
+      });
+
+      expect(result.current.iceGatheringState).toBe('gathering');
+    });
+
+    it('should track ICE connection state', () => {
+      const signaling = createMockSignaling();
+
+      const { result } = renderHook(() =>
+        useWebRTC({ config: defaultConfig, signaling })
+      );
+
+      expect(result.current.iceConnectionState).toBe('new');
+
+      act(() => {
+        mockPeerConnection.simulateIceConnectionState('checking');
+      });
+
+      expect(result.current.iceConnectionState).toBe('checking');
+    });
+
+    it('should call onIceGatheringComplete when gathering finishes', () => {
+      const signaling = createMockSignaling();
+      const onIceGatheringComplete = vi.fn();
+
+      renderHook(() =>
+        useWebRTC({ config: defaultConfig, signaling, onIceGatheringComplete })
+      );
+
+      act(() => {
+        mockPeerConnection.iceGatheringState = 'complete';
+        mockPeerConnection.onicegatheringstatechange?.();
+      });
+
+      expect(onIceGatheringComplete).toHaveBeenCalled();
+    });
+
+    it('should provide connection stats via getConnectionStats', async () => {
+      const signaling = createMockSignaling();
+
+      const { result } = renderHook(() =>
+        useWebRTC({ config: defaultConfig, signaling })
+      );
+
+      // Set up mock after hook creates the peer connection
+      const mockStats = new Map([
+        ['candidate-pair', { type: 'candidate-pair', state: 'succeeded' }],
+      ]);
+      mockPeerConnection.getStats.mockResolvedValue(mockStats);
+
+      let stats: RTCStatsReport | null = null;
+      await act(async () => {
+        stats = await result.current.getConnectionStats();
+      });
+
+      expect(mockPeerConnection.getStats).toHaveBeenCalled();
+      expect(stats).toBe(mockStats);
     });
   });
 });
