@@ -1,0 +1,156 @@
+.session-status {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 16px;
+  background: var(--bg-secondary, #1a1a1a);
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.session-status__connection {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.connection-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.connection-indicator--transitioning {
+  animation: pulse 0.3s ease;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+
+.connection-indicator--disconnected {
+  background-color: #6b7280;
+  box-shadow: 0 0 0 2px rgba(107, 114, 128, 0.3);
+}
+
+.connection-indicator--connecting {
+  background-color: #f59e0b;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.3);
+  animation: blink 1s ease-in-out infinite;
+}
+
+.connection-indicator--connected {
+  background-color: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
+}
+
+.connection-indicator--reconnecting {
+  background-color: #f59e0b;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.3);
+  animation: blink 1s ease-in-out infinite;
+}
+
+.connection-indicator--failed {
+  background-color: #ef4444;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.3);
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.connection-label {
+  color: var(--text-primary, #ffffff);
+  font-weight: 500;
+}
+
+.session-status__timer {
+  color: var(--text-secondary, #a0a0a0);
+}
+
+.session-timer {
+  font-family: monospace;
+  font-size: 13px;
+}
+
+.permission-badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.permission-badge--view-only {
+  background-color: rgba(107, 114, 128, 0.2);
+  color: #9ca3af;
+  border: 1px solid rgba(107, 114, 128, 0.3);
+}
+
+.permission-badge--control {
+  background-color: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.permission-badge--admin {
+  background-color: rgba(168, 85, 247, 0.2);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.session-status__expiry-warning {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background-color: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 6px;
+  color: #fbbf24;
+  font-size: 12px;
+}
+
+.expiry-icon {
+  font-size: 14px;
+}
+
+.session-status__error {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background-color: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 6px;
+}
+
+.error-message {
+  color: #fca5a5;
+  font-size: 13px;
+}
+
+.retry-button {
+  padding: 4px 12px;
+  background-color: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: 4px;
+  color: #fca5a5;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.retry-button:hover {
+  background-color: rgba(239, 68, 68, 0.3);
+}
+
+.retry-button:focus {
+  outline: 2px solid #ef4444;
+  outline-offset: 2px;
+}
