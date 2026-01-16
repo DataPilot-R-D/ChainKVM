@@ -4,7 +4,7 @@
 - **Milestone:** M2 - Web Console & WebRTC Connection
 - **Component:** Web Console
 - **Priority:** P0
-- **Status:** Todo
+- **Status:** Done
 
 ## User Story
 
@@ -21,15 +21,32 @@ As an operator, I want to see the robot's video feed in real-time so that I can 
 
 ## Definition of Done
 
-- [ ] HTML5 video element integration
-- [ ] WebRTC video track handling
-- [ ] Resolution display indicator
-- [ ] FPS counter display
-- [ ] Full-screen mode support
-- [ ] Graceful handling of stream interruption
-- [ ] Unit tests for component
-- [ ] Code reviewed and merged
-- [ ] Tests passing
+- [x] HTML5 video element integration
+- [x] WebRTC video track handling
+- [x] Resolution display indicator
+- [x] FPS counter display
+- [x] Full-screen mode support
+- [x] Graceful handling of stream interruption
+- [x] Unit tests for component (18 tests)
+- [x] Code reviewed and merged
+- [x] Tests passing (38 total)
+
+## Implementation Notes
+
+### VideoRenderer Component
+- Accepts `MediaStream` prop and attaches to HTML5 video element
+- Displays resolution and FPS from track settings
+- Fullscreen toggle with `requestFullscreen` API
+- Stream interruption handling:
+  - Shows "Reconnecting..." overlay when stream inactive
+  - Calls `onStreamError` callback when track ends
+  - Displays error message when `error` prop provided
+- Proper cleanup on unmount (srcObject = null)
+
+### Integration
+- VideoPanel now wraps VideoRenderer
+- Stats overlay positioned in top-left corner
+- Fullscreen button in bottom-right corner
 
 ## Acceptance Tests (UAT)
 
@@ -81,5 +98,5 @@ As an operator, I want to see the robot's video feed in real-time so that I can 
 
 ## Open Questions
 
-- Picture-in-picture support needed?
-- Screenshot/recording functionality?
+- ~~Picture-in-picture support needed?~~ → Deferred to post-POC
+- ~~Screenshot/recording functionality?~~ → Deferred to post-POC

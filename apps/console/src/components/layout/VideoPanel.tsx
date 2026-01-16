@@ -1,21 +1,21 @@
+import { VideoRenderer } from '../video';
 import './VideoPanel.css';
 
-export function VideoPanel() {
+export interface VideoPanelProps {
+  stream?: MediaStream | null;
+  error?: string | null;
+  onStreamError?: (reason: string) => void;
+}
+
+export function VideoPanel({ stream, error, onStreamError }: VideoPanelProps) {
   return (
     <div className="video-panel" data-testid="video-panel">
-      <div className="video-panel__container">
-        <video
-          className="video-panel__video"
-          data-testid="video-element"
-          autoPlay
-          playsInline
-          muted
-        />
-        <div className="video-panel__placeholder">
-          <span>No Video Stream</span>
-          <p>Waiting for connection...</p>
-        </div>
-      </div>
+      <VideoRenderer
+        stream={stream}
+        error={error}
+        onStreamError={onStreamError}
+        showStats
+      />
     </div>
   );
 }
