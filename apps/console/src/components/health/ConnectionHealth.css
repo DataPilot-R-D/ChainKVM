@@ -1,0 +1,102 @@
+.connection-health {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.75);
+  border-radius: 4px;
+  padding: 8px 12px;
+  color: #fff;
+  font-size: 12px;
+  font-family: monospace;
+  min-width: 160px;
+  z-index: 100;
+}
+
+.connection-health--compact {
+  min-width: auto;
+  padding: 4px 8px;
+}
+
+.connection-health__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.connection-health__title {
+  flex: 1;
+  font-weight: 600;
+}
+
+.connection-health__toggle {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 2px 4px;
+}
+
+.connection-health__toggle:hover {
+  color: #fff;
+}
+
+.connection-health__metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.health-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.health-indicator--good {
+  background: #22c55e;
+  box-shadow: 0 0 4px #22c55e;
+}
+
+.health-indicator--warning {
+  background: #eab308;
+  box-shadow: 0 0 4px #eab308;
+}
+
+.health-indicator--critical {
+  background: #ef4444;
+  box-shadow: 0 0 4px #ef4444;
+  animation: pulse 1s infinite;
+}
+
+.health-indicator--unknown {
+  background: #6b7280;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.metric {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.metric__label {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.metric__value {
+  font-weight: 500;
+  text-align: right;
+}
