@@ -4,7 +4,7 @@
 - **Milestone:** M1 - Robot Agent Video Stream & Local Control
 - **Component:** Robot Agent
 - **Priority:** P0
-- **Status:** Todo
+- **Status:** Done
 
 ## User Story
 
@@ -20,14 +20,14 @@ As an operator, I want to receive a real-time video feed from the robot so that 
 
 ## Definition of Done
 
-- [ ] Camera capture working with configurable resolution (720p, 1080p)
-- [ ] Frame rate configurable (15, 30, 60 fps)
-- [ ] Video encoding implemented (H.264/VP8)
-- [ ] Frame timestamps included for latency measurement
-- [ ] Graceful handling of camera disconnection
-- [ ] Unit tests for capture module
-- [ ] Code reviewed and merged
-- [ ] Tests passing
+- [x] Camera capture working with configurable resolution (720p, 1080p)
+- [x] Frame rate configurable (15, 30, 60 fps)
+- [x] Video encoding implemented (H.264/VP8)
+- [x] Frame timestamps included for latency measurement
+- [x] Graceful handling of camera disconnection
+- [x] Unit tests for capture module (27 tests passing)
+- [x] Code reviewed and merged
+- [x] Tests passing
 
 ## Acceptance Tests (UAT)
 
