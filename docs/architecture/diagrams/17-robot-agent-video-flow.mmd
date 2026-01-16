@@ -1,0 +1,21 @@
+sequenceDiagram
+    participant Camera
+    participant Capture
+    participant Encoder
+    participant Track as Video Track
+    participant PC as Peer Connection
+    participant Console
+
+    loop Every Frame (30 FPS)
+        Camera->>Capture: Raw frame (YUV)
+        Capture->>Capture: Add timestamp
+        Capture->>Encoder: Frame + metadata
+        Encoder->>Encoder: H.264 encode
+        Encoder->>Track: NAL units
+        Track->>PC: RTP packetize
+        PC->>Console: SRTP encrypted
+    end
+
+    Note over Console,PC: RTCP Feedback Loop
+    Console-->>PC: RTCP receiver report
+    PC-->>Encoder: Bitrate adjustment

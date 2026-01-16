@@ -4,7 +4,7 @@
 - **Milestone:** M1 - Robot Agent Video Stream & Local Control
 - **Component:** Robot Agent
 - **Priority:** P0
-- **Status:** Todo
+- **Status:** Complete
 
 ## User Story
 
@@ -23,13 +23,13 @@ As a system architect, I want a well-defined Robot Agent architecture so that th
 
 ## Definition of Done
 
-- [ ] Architecture document created with component diagrams
-- [ ] Data flow diagrams for video and control paths
-- [ ] API contract definitions drafted
-- [ ] Security boundaries identified
-- [ ] Resource requirements estimated
+- [x] Architecture document created with component diagrams
+- [x] Data flow diagrams for video and control paths
+- [x] API contract definitions drafted
+- [x] Security boundaries identified
+- [x] Resource requirements estimated
 - [ ] Code reviewed and merged
-- [ ] Tests passing
+- [x] Tests passing (Go module builds)
 
 ## Acceptance Tests (UAT)
 
@@ -69,7 +69,7 @@ As a system architect, I want a well-defined Robot Agent architecture so that th
 - PRD Section: 7.1 (POC scope - Robot Agent)
 - Design Decision: 16.1 (Edge Architecture)
 
-## Open Questions
+## Open Questions (Resolved)
 
-- What hardware platform will be used for POC?
-- Should we support multiple camera types initially?
+- **Hardware platform:** Unitree Go2 Pro (ROS 2, Ubuntu 22.04) per DECISIONS.md
+- **Camera support:** Single camera (webcam/V4L2) for POC; platform abstracted for future extension

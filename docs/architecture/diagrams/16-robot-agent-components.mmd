@@ -1,0 +1,74 @@
+flowchart TB
+    subgraph External
+        CAM[Camera Device]
+        ROBOT[Robot APIs]
+        GW[Gateway Signaling]
+        CONSOLE[Web Console]
+    end
+
+    subgraph RobotAgent[Robot Agent]
+        subgraph VideoModule[Video Module]
+            CAPTURE[Camera Capture]
+            ENCODER[Video Encoder]
+        end
+
+        subgraph ControlModule[Control Module]
+            VALIDATOR[Message Validator]
+            DISPATCHER[Command Dispatcher]
+            RATELIMIT[Rate Limiter]
+        end
+
+        subgraph SessionModule[Session Manager]
+            SIGNAL[Signaling Client]
+            TOKEN[Token Validator]
+            STATE[State Machine]
+        end
+
+        subgraph SafetyModule[Safety Subsystem]
+            MONITOR[Safety Monitor]
+            ESTOP[E-Stop Handler]
+            SAFESTOP[Safe-Stop Executor]
+        end
+
+        subgraph Transport[WebRTC Transport]
+            PC[Peer Connection]
+            TRACK[Video Track]
+            DC[DataChannel]
+        end
+    end
+
+    CAM --> CAPTURE
+    CAPTURE --> ENCODER
+    ENCODER --> TRACK
+    TRACK --> PC
+
+    GW <--> SIGNAL
+    SIGNAL <--> STATE
+    TOKEN --> STATE
+
+    PC <--> CONSOLE
+    DC --> VALIDATOR
+    VALIDATOR --> RATELIMIT
+    RATELIMIT --> DISPATCHER
+    DISPATCHER --> ROBOT
+
+    DISPATCHER --> ESTOP
+    ESTOP --> SAFESTOP
+    MONITOR --> SAFESTOP
+    STATE --> MONITOR
+    DC --> MONITOR
+
+    SAFESTOP --> ROBOT
+    SAFESTOP --> PC
+
+    classDef external fill:#f9f,stroke:#333
+    classDef safety fill:#f66,stroke:#333
+    classDef video fill:#6f6,stroke:#333
+    classDef control fill:#66f,stroke:#333
+    classDef session fill:#ff6,stroke:#333
+
+    class CAM,ROBOT,GW,CONSOLE external
+    class MONITOR,ESTOP,SAFESTOP safety
+    class CAPTURE,ENCODER,TRACK video
+    class VALIDATOR,DISPATCHER,RATELIMIT control
+    class SIGNAL,TOKEN,STATE session
