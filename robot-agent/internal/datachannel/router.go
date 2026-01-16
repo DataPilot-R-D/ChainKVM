@@ -11,9 +11,11 @@ import (
 
 // Error types for router operations.
 var (
-	ErrInvalidJSON = errors.New("invalid JSON message")
-	ErrUnknownType = errors.New("unknown message type")
-	ErrNoHandler   = errors.New("no handler registered for message type")
+	ErrInvalidJSON  = errors.New("invalid JSON message")
+	ErrUnknownType  = errors.New("unknown message type")
+	ErrNoHandler    = errors.New("no handler registered for message type")
+	ErrSendFailed   = errors.New("failed to send response")
+	ErrNilSender    = errors.New("sender cannot be nil")
 )
 
 // MessageHandler processes a message and returns an optional response.
@@ -32,7 +34,11 @@ type Router struct {
 }
 
 // NewRouter creates a new message router with the given response sender.
+// Panics if sender is nil.
 func NewRouter(sender ResponseSender) *Router {
+	if sender == nil {
+		panic(ErrNilSender)
+	}
 	return &Router{
 		handlers: make(map[protocol.MessageType]MessageHandler),
 		sender:   sender,
@@ -74,13 +80,15 @@ func (r *Router) HandleMessage(data []byte) error {
 	}
 
 	if response != nil {
-		r.sender.Send(response)
+		if err := r.sender.Send(response); err != nil {
+			return ErrSendFailed
+		}
 	}
 
 	return nil
 }
 
-// sendError sends an error message to the peer.
+// sendError sends an error message to the peer (best-effort, errors ignored).
 func (r *Router) sendError(code, reason string, refType protocol.MessageType, refT int64) {
 	errMsg := protocol.ErrorMessage{
 		Type:    protocol.TypeError,
@@ -93,7 +101,7 @@ func (r *Router) sendError(code, reason string, refType protocol.MessageType, re
 	if err != nil {
 		return
 	}
-	r.sender.Send(data)
+	_ = r.sender.Send(data) // Best-effort: error notifications are not critical
 }
 
 // isKnownType checks if a message type is defined in the protocol.
