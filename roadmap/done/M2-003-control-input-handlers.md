@@ -4,7 +4,7 @@
 - **Milestone:** M2 - Web Console & WebRTC Connection
 - **Component:** Web Console
 - **Priority:** P0
-- **Status:** Todo
+- **Status:** Done
 
 ## User Story
 
@@ -22,15 +22,40 @@ As an operator, I want to control the robot using keyboard and mouse so that I c
 
 ## Definition of Done
 
-- [ ] Keyboard event capture (keydown, keyup)
-- [ ] Mouse event capture (move, click, scroll)
-- [ ] Input debouncing for performance
-- [ ] Focus management (capture mode)
-- [ ] Input mapping configuration
-- [ ] E-Stop keyboard shortcut
-- [ ] Unit tests for input handlers
-- [ ] Code reviewed and merged
-- [ ] Tests passing
+- [x] Keyboard event capture (keydown, keyup)
+- [x] Mouse event capture (move, click, scroll)
+- [x] Input debouncing for performance
+- [x] Focus management (capture mode)
+- [x] Input mapping configuration
+- [x] E-Stop keyboard shortcut
+- [x] Unit tests for input handlers (15 keyboard tests)
+- [x] Code reviewed and merged
+- [x] Tests passing (53 total)
+
+## Implementation Notes
+
+### useKeyboardInput Hook
+- Captures keydown/keyup events on window
+- Maps WASD and arrow keys to drive commands (v, w)
+- E-Stop triggered by Space or Escape keys
+- Tracks pressed keys in Set for multi-key support
+- Debouncing for repeated key events
+- Clears pressed keys when disabled
+
+### useMouseInput Hook
+- Captures mousemove, mousedown, mouseup, wheel on target element
+- Movement batching for performance (configurable batchMs)
+- Button state tracked as Set with bitmask encoding
+- Pointer lock support for FPS-style mouse capture
+- Generates KVM mouse commands (dx, dy, buttons, scroll)
+- Clears state on disable
+
+### Key Mappings
+- W/ArrowUp: Forward (v=1)
+- S/ArrowDown: Backward (v=-1)
+- A/ArrowLeft: Turn left (w=1)
+- D/ArrowRight: Turn right (w=-1)
+- Space/Escape: E-Stop
 
 ## Acceptance Tests (UAT)
 
@@ -90,5 +115,5 @@ As an operator, I want to control the robot using keyboard and mouse so that I c
 
 ## Open Questions
 
-- Customizable key bindings for POC?
-- Touch screen support needed?
+- ~~Customizable key bindings for POC?~~ → Deferred, fixed WASD/arrows for MVP
+- ~~Touch screen support needed?~~ → Deferred to post-POC
