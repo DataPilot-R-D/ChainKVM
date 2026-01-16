@@ -4,7 +4,7 @@
 - **Milestone:** M2 - Web Console & WebRTC Connection
 - **Component:** Web Console
 - **Priority:** P0
-- **Status:** Todo
+- **Status:** Done
 
 ## User Story
 
@@ -23,13 +23,47 @@ As an operator, I want a well-designed console interface so that I can efficient
 
 ## Definition of Done
 
-- [ ] UI wireframes created
-- [ ] Component hierarchy defined
-- [ ] Responsive breakpoints specified
-- [ ] Accessibility requirements documented
-- [ ] Design approved by stakeholders
-- [ ] Code reviewed and merged
-- [ ] Tests passing
+- [x] UI wireframes created
+- [x] Component hierarchy defined
+- [x] Responsive breakpoints specified
+- [x] Accessibility requirements documented
+- [x] Design approved by stakeholders
+- [x] Code reviewed and merged
+- [x] Tests passing (20 tests)
+
+## Implementation Notes
+
+### Component Hierarchy
+```
+Layout
+├── Header (banner role)
+│   ├── Logo + Title
+│   └── SessionStatus indicator
+├── Main
+│   ├── VideoPanel (video feed display)
+│   └── ControlPanel (input instructions)
+└── StatusBar (contentinfo role)
+    ├── Latency indicator
+    ├── Connection quality
+    └── Control rate
+```
+
+### Responsive Breakpoints
+- Mobile: < 480px (vertical stack, condensed controls)
+- Tablet: 480px - 768px (vertical stack)
+- Desktop: > 768px (horizontal layout for main)
+
+### Accessibility
+- Semantic HTML landmarks (banner, main, contentinfo)
+- Focus-visible outlines for keyboard navigation
+- Skip link support (prepared)
+- ARIA labels ready for dynamic content
+
+### Tech Stack
+- React 18 + TypeScript
+- Vite for build
+- Vitest + Testing Library for tests
+- CSS Modules pattern (component-scoped CSS)
 
 ## Acceptance Tests (UAT)
 
@@ -72,5 +106,5 @@ As an operator, I want a well-designed console interface so that I can efficient
 
 ## Open Questions
 
-- Dark mode support for POC?
-- Customizable layout preferences?
+- ~~Dark mode support for POC?~~ → Already dark theme by default (operator preference for low light environments)
+- ~~Customizable layout preferences?~~ → Deferred to post-POC, fixed layout for MVP

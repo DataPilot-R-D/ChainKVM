@@ -1,0 +1,44 @@
+.status-bar {
+  display: flex;
+  gap: 1.5rem;
+  padding: 0.5rem 1rem;
+  background: #0f0f1a;
+  border-top: 1px solid #333;
+  color: #fff;
+  font-size: 0.75rem;
+}
+
+.status-bar__item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.status-bar__label {
+  color: #666;
+}
+
+.status-bar__value {
+  font-family: monospace;
+  color: #44ff44;
+}
+
+.status-bar__value--unknown {
+  color: #666;
+}
+
+.status-bar__value--warning {
+  color: #ffaa00;
+}
+
+.status-bar__value--critical {
+  color: #ff4444;
+}
+
+/* Responsive: stack on small screens */
+@media (max-width: 480px) {
+  .status-bar {
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+  }
+}
