@@ -97,3 +97,70 @@ When referencing PRD sections in task files:
 - 11.1-11.2: Data model (capability token, ledger event schemas)
 - 12.1-12.2: Observability & measurement
 - 16.x: Design decisions
+
+## Agent Workflow
+
+### Task Execution Rules
+
+1. **Single Task Focus**
+   - Work on ONE task at a time
+   - Complete fully before selecting next task
+
+2. **Kanban Task Selection**
+   - Do NOT follow sequential task numbering (001 → 002 → 003)
+   - Select the most aligned task based on:
+     - Dependencies resolved (check "Blocked by" in task file)
+     - Priority (P0 > P1 > P2 > P3)
+     - Current milestone progression
+     - Context fit (skills, recent work)
+
+3. **Test-Driven Development (TDD)**
+   - Start every implementation with tests
+   - Red → Green → Refactor cycle
+   - No code without corresponding tests
+
+4. **Definition of Done**
+   Before marking task complete:
+   - [ ] Tests written and passing (green)
+   - [ ] Code refactored and clean
+   - [ ] UAT scenarios verified
+   - [ ] Task DoD checklist completed
+   - [ ] Docs updated
+
+5. **Git Branch Workflow**
+   - Branch naming: `feature/M#-###-task-name`
+   - Commit format: Conventional Commits (`feat`, `fix`, `test`, `docs`, `refactor`, `chore`)
+
+   ```bash
+   # 1. Start task - create feature branch
+   git checkout -b feature/M1-001-task-name
+
+   # 2. Move task to in_progress
+   mv roadmap/todo/M1-001-task.md roadmap/in_progress/
+
+   # 3. Implement with TDD (write tests first, then code)
+   git add . && git commit -m "test(agent): add unit tests for control commands"
+   git add . && git commit -m "feat(agent): implement control command handler"
+   git add . && git commit -m "refactor(agent): extract validation logic"
+
+   # 4. Create PR when complete
+   gh pr create --title "feat(agent): M1-001 task title" --body "..."
+
+   # 5. PR Review, merge, cleanup
+   gh pr merge --squash && git branch -d feature/M1-001-task-name
+
+   # 6. Move task to done
+   mv roadmap/in_progress/M1-001-task.md roadmap/done/
+   ```
+
+6. **Continuous Learning**
+   Update CLAUDE.md when you discover:
+   - Common mistakes and solutions
+   - How to run/test specific components
+   - Environment setup requirements
+   - Non-obvious gotchas
+
+7. **Living Documentation**
+   - Update docs during implementation, not after
+   - Keep architecture diagrams in sync
+   - Update task dependencies if blockers found
