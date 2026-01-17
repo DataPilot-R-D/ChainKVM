@@ -1,54 +1,52 @@
 import type { FastifyInstance } from 'fastify';
 import type { JWKS, JWK } from '../types.js';
+import type { KeyManager } from '../tokens/index.js';
 
-// Static development Ed25519 key for POC
-// WARNING: This is a PUBLIC key only - do not use in production
-// Real implementation will load keys from secure storage (M3-006)
-//
-// This is a well-known test key for development purposes.
-// The private key counterpart should NEVER be committed to source control.
-const DEV_PUBLIC_KEY: JWK = {
+// Module-level state for the active key manager
+let activeKeyManager: KeyManager | null = null;
+
+// Fallback static key for backwards compatibility
+const FALLBACK_KEY: JWK = {
   kty: 'OKP',
   crv: 'Ed25519',
-  // This is a deterministic test public key (32 bytes, base64url encoded)
-  // Generated from a test private key for development only
   x: 'o5Uq1iJNqJ6pVvKwrI5TQHtT5rF_0mKE6t6J9dQj_qQ',
   kid: 'dev-key-1',
   use: 'sig',
   alg: 'EdDSA',
 };
 
-// Previous key for rotation overlap (simulates key rotation scenario)
-const DEV_PREVIOUS_KEY: JWK = {
-  kty: 'OKP',
-  crv: 'Ed25519',
-  x: 'AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8',
-  kid: 'dev-key-0',
-  use: 'sig',
-  alg: 'EdDSA',
-};
+function buildJWKS(): JWKS {
+  if (activeKeyManager) {
+    return { keys: [activeKeyManager.getPublicJwk() as JWK] };
+  }
+  return { keys: [FALLBACK_KEY] };
+}
 
-const jwks: JWKS = {
-  keys: [DEV_PUBLIC_KEY, DEV_PREVIOUS_KEY],
-};
+/** Set the key manager for JWKS. Call before registering routes. */
+export function setKeyManager(keyManager: KeyManager): void {
+  activeKeyManager = keyManager;
+}
 
 export async function jwksRoutes(app: FastifyInstance): Promise<void> {
   // /.well-known/jwks.json - Public keys for token verification
   app.get('/.well-known/jwks.json', async () => {
-    return jwks;
+    return buildJWKS();
   });
 
   // Convenience alias
   app.get('/v1/jwks', async () => {
-    return jwks;
+    return buildJWKS();
   });
 }
 
 // Export for testing
 export function getJWKS(): JWKS {
-  return jwks;
+  return buildJWKS();
 }
 
 export function getCurrentKeyId(): string {
-  return DEV_PUBLIC_KEY.kid;
+  if (activeKeyManager) {
+    return activeKeyManager.getKeyId();
+  }
+  return FALLBACK_KEY.kid;
 }

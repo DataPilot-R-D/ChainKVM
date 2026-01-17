@@ -2,14 +2,26 @@ import Fastify from 'fastify';
 import websocket from '@fastify/websocket';
 import { loadConfig } from './config.js';
 import { healthRoutes } from './routes/health.js';
-import { sessionRoutes } from './routes/sessions.js';
+import { sessionRoutes, setTokenGenerator } from './routes/sessions.js';
 import { revocationRoutes } from './routes/revocations.js';
 import { auditRoutes } from './routes/audit.js';
-import { jwksRoutes } from './routes/jwks.js';
+import { jwksRoutes, setKeyManager } from './routes/jwks.js';
 import { signalingRoutes } from './routes/signaling.js';
+import { createDevKeyManager, createTokenGenerator } from './tokens/index.js';
 
 async function main() {
   const config = loadConfig();
+
+  // Initialize key management and token generation
+  const keyManager = await createDevKeyManager();
+  const tokenGenerator = await createTokenGenerator(
+    keyManager.getSigningKey(),
+    keyManager.getKeyId()
+  );
+
+  // Configure modules with dependencies
+  setKeyManager(keyManager);
+  setTokenGenerator(tokenGenerator);
 
   const app = Fastify({
     logger: {
