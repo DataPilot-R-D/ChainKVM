@@ -18,7 +18,6 @@ export interface ValidationResult {
 
 /** Validate a policy condition. */
 export function validateCondition(condition: unknown, index: number): string[] {
-  const errors: string[] = [];
   const prefix = `condition[${index}]`;
 
   if (!condition || typeof condition !== 'object') {
@@ -26,6 +25,7 @@ export function validateCondition(condition: unknown, index: number): string[] {
   }
 
   const c = condition as Record<string, unknown>;
+  const errors: string[] = [];
 
   if (typeof c.field !== 'string' || c.field.length === 0) {
     errors.push(`${prefix}.field: must be a non-empty string`);
@@ -44,7 +44,6 @@ export function validateCondition(condition: unknown, index: number): string[] {
 
 /** Validate a policy rule. */
 export function validateRule(rule: unknown, index: number): string[] {
-  const errors: string[] = [];
   const prefix = `rule[${index}]`;
 
   if (!rule || typeof rule !== 'object') {
@@ -52,6 +51,7 @@ export function validateRule(rule: unknown, index: number): string[] {
   }
 
   const r = rule as Record<string, unknown>;
+  const errors: string[] = [];
 
   if (typeof r.id !== 'string' || r.id.length === 0) {
     errors.push(`${prefix}.id: must be a non-empty string`);
@@ -64,19 +64,21 @@ export function validateRule(rule: unknown, index: number): string[] {
   if (!Array.isArray(r.conditions)) {
     errors.push(`${prefix}.conditions: must be an array`);
   } else {
-    r.conditions.forEach((c, i) => {
-      errors.push(...validateCondition(c, i).map((e) => `${prefix}.${e}`));
-    });
+    const conditionErrors = r.conditions.flatMap((c, i) =>
+      validateCondition(c, i).map((e) => `${prefix}.${e}`)
+    );
+    errors.push(...conditionErrors);
   }
 
   if (!Array.isArray(r.actions) || r.actions.length === 0) {
     errors.push(`${prefix}.actions: must be a non-empty array`);
   } else {
-    r.actions.forEach((action, i) => {
+    for (let i = 0; i < r.actions.length; i++) {
+      const action = r.actions[i];
       if (typeof action !== 'string' || !ACTION_PATTERN.test(action)) {
         errors.push(`${prefix}.actions[${i}]: must match pattern 'namespace:action'`);
       }
-    });
+    }
   }
 
   if (typeof r.priority !== 'number' || !Number.isInteger(r.priority)) {
@@ -88,13 +90,12 @@ export function validateRule(rule: unknown, index: number): string[] {
 
 /** Validate a policy input. */
 export function validatePolicyInput(input: unknown): ValidationResult {
-  const errors: string[] = [];
-
   if (!input || typeof input !== 'object') {
     return { valid: false, errors: ['policy must be an object'] };
   }
 
   const p = input as Record<string, unknown>;
+  const errors: string[] = [];
 
   if (typeof p.id !== 'string' || p.id.length === 0) {
     errors.push('id: must be a non-empty string');
@@ -109,9 +110,8 @@ export function validatePolicyInput(input: unknown): ValidationResult {
   } else if (p.rules.length === 0) {
     errors.push('rules: must have at least one rule');
   } else {
-    p.rules.forEach((rule, i) => {
-      errors.push(...validateRule(rule, i));
-    });
+    const ruleErrors = p.rules.flatMap((rule, i) => validateRule(rule, i));
+    errors.push(...ruleErrors);
   }
 
   return { valid: errors.length === 0, errors };
@@ -119,15 +119,10 @@ export function validatePolicyInput(input: unknown): ValidationResult {
 
 /** Validate an array of policy rules. */
 export function validateRules(rules: unknown): ValidationResult {
-  const errors: string[] = [];
-
   if (!Array.isArray(rules)) {
     return { valid: false, errors: ['rules must be an array'] };
   }
 
-  rules.forEach((rule, i) => {
-    errors.push(...validateRule(rule, i));
-  });
-
+  const errors = rules.flatMap((rule, i) => validateRule(rule, i));
   return { valid: errors.length === 0, errors };
 }
