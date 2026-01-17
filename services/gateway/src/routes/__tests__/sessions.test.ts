@@ -1,8 +1,9 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, beforeAll } from 'vitest';
 import Fastify, { FastifyInstance } from 'fastify';
-import { sessionRoutes, getSession, updateSessionState } from '../sessions.js';
+import { sessionRoutes, getSession, updateSessionState, setTokenGenerator } from '../sessions.js';
 import type { Config } from '../../config.js';
 import type { CreateSessionRequest, CreateSessionResponse, SessionState } from '../../types.js';
+import { createTokenGenerator, createDevKeyManager } from '../../tokens/index.js';
 
 const testConfig: Config = {
   port: 4000,
@@ -14,6 +15,16 @@ const testConfig: Config = {
   maxControlRateHz: 20,
   maxVideoBitrateKbps: 4000,
 };
+
+// Set up token generator before tests
+beforeAll(async () => {
+  const keyManager = await createDevKeyManager();
+  const tokenGenerator = await createTokenGenerator(
+    keyManager.getSigningKey(),
+    keyManager.getKeyId()
+  );
+  setTokenGenerator(tokenGenerator);
+});
 
 describe('sessionRoutes', () => {
   let app: FastifyInstance;
