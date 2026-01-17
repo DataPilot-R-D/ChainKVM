@@ -49,7 +49,7 @@ function validateIssuerTrust(issuer: string, trustedIssuers: string[]): void {
 async function multibaseToKey(
   publicKeyMultibase: string,
   algorithm: string
-): Promise<Awaited<ReturnType<typeof jose.importJWK>>> {
+): Promise<jose.KeyLike> {
   const decoded = base58btc.decode(publicKeyMultibase);
   // Skip multicodec prefix (2 bytes for ed25519: 0xed01)
   const rawKey = decoded.slice(2);
@@ -59,8 +59,8 @@ async function multibaseToKey(
       { kty: 'OKP', crv: 'Ed25519', x: jose.base64url.encode(rawKey) },
       'EdDSA'
     );
-  } else if (algorithm === 'ES256') {
-    // ES256 uses P-256 curve, requires 65-byte uncompressed or 33-byte compressed key
+  }
+  if (algorithm === 'ES256') {
     return jose.importJWK(
       {
         kty: 'EC',
@@ -74,6 +74,70 @@ async function multibaseToKey(
   throw VCVerificationError.unsupportedAlgorithm(algorithm);
 }
 
+/** Resolve DID and extract verification method. */
+function resolveVerificationMethod(
+  issuer: string,
+  didResolver: DIDKeyResolver
+): { publicKeyMultibase: string } {
+  const resolution = didResolver.resolve(issuer);
+  if (!resolution.didDocument) {
+    throw VCVerificationError.issuerResolutionFailed(
+      issuer,
+      new Error(resolution.didResolutionMetadata.error || 'Unknown resolution error')
+    );
+  }
+
+  const verificationMethod = resolution.didDocument.verificationMethod[0];
+  if (!verificationMethod) {
+    throw VCVerificationError.issuerResolutionFailed(
+      issuer,
+      new Error('No verification method in DID document')
+    );
+  }
+
+  return verificationMethod;
+}
+
+/** Verify JWT signature and return payload. */
+async function verifyJwtSignature(
+  jwtVc: string,
+  publicKey: jose.KeyLike,
+  clockSkewMs: number
+): Promise<JwtVcPayload> {
+  try {
+    const result = await jose.jwtVerify(jwtVc, publicKey, {
+      algorithms: SUPPORTED_ALGORITHMS,
+      clockTolerance: Math.ceil(clockSkewMs / 1000),
+    });
+    return result.payload as unknown as JwtVcPayload;
+  } catch (error) {
+    if (error instanceof jose.errors.JWTExpired) {
+      const exp = jose.decodeJwt(jwtVc).exp as number;
+      throw VCVerificationError.credentialExpired(new Date(exp * 1000));
+    }
+    if (error instanceof jose.errors.JWTClaimValidationFailed) {
+      const nbf = jose.decodeJwt(jwtVc).nbf as number;
+      if (nbf) {
+        throw VCVerificationError.credentialNotYetValid(new Date(nbf * 1000));
+      }
+    }
+    // All other jose errors are signature failures
+    throw VCVerificationError.invalidSignature();
+  }
+}
+
+/** Build verification result from validated payload. */
+function buildResult(payload: JwtVcPayload): VCVerificationResult {
+  return {
+    valid: true,
+    credential: payload.vc,
+    issuer: payload.iss,
+    subject: payload.sub,
+    expiresAt: payload.exp ? new Date(payload.exp * 1000) : undefined,
+    issuedAt: payload.iat ? new Date(payload.iat * 1000) : undefined,
+  };
+}
+
 /**
  * Create a JWT-VC verifier.
  */
@@ -82,73 +146,22 @@ export function createJwtVcVerifier(options: CreateJwtVcVerifierOptions): JwtVcV
 
   return {
     async verify(jwtVc: string): Promise<VCVerificationResult> {
-      // 1. Extract issuer without verification
       const issuer = extractIssuer(jwtVc);
-
-      // 2. Validate issuer is trusted
       validateIssuerTrust(issuer, trustedIssuers);
 
-      // 3. Resolve issuer DID to get public key
-      const resolution = didResolver.resolve(issuer);
-      if (!resolution.didDocument) {
-        throw VCVerificationError.issuerResolutionFailed(
-          issuer,
-          new Error(resolution.didResolutionMetadata.error || 'Unknown resolution error')
-        );
-      }
+      const verificationMethod = resolveVerificationMethod(issuer, didResolver);
 
-      // 4. Get verification method public key
-      const verificationMethod = resolution.didDocument.verificationMethod[0];
-      if (!verificationMethod) {
-        throw VCVerificationError.issuerResolutionFailed(
-          issuer,
-          new Error('No verification method in DID document')
-        );
-      }
-
-      // 5. Get JWT header to determine algorithm
       const header = jose.decodeProtectedHeader(jwtVc);
       validateAlgorithm(header);
-      const algorithm = header.alg!; // Safe after validateAlgorithm
 
-      // 6. Import public key
-      const publicKey = await multibaseToKey(verificationMethod.publicKeyMultibase, algorithm);
+      const publicKey = await multibaseToKey(verificationMethod.publicKeyMultibase, header.alg!);
+      const payload = await verifyJwtSignature(jwtVc, publicKey, clockSkewMs);
 
-      // 7. Verify signature (let jose handle clock tolerance)
-      let payload: JwtVcPayload;
-      try {
-        const result = await jose.jwtVerify(jwtVc, publicKey, {
-          algorithms: SUPPORTED_ALGORITHMS,
-          clockTolerance: Math.ceil(clockSkewMs / 1000),
-        });
-        payload = result.payload as unknown as JwtVcPayload;
-      } catch (error) {
-        // Distinguish between signature errors and temporal errors
-        if (error instanceof jose.errors.JWTExpired) {
-          const exp = jose.decodeJwt(jwtVc).exp as number;
-          throw VCVerificationError.credentialExpired(new Date(exp * 1000));
-        }
-        if (error instanceof jose.errors.JWTClaimValidationFailed) {
-          const nbf = jose.decodeJwt(jwtVc).nbf as number;
-          if (nbf) throw VCVerificationError.credentialNotYetValid(new Date(nbf * 1000));
-        }
-        throw VCVerificationError.invalidSignature();
-      }
-
-      // 8. Validate vc claim exists
       if (!payload.vc) {
         throw VCVerificationError.missingVcClaim();
       }
 
-      // 10. Build result
-      return {
-        valid: true,
-        credential: payload.vc,
-        issuer: payload.iss,
-        subject: payload.sub,
-        expiresAt: payload.exp ? new Date(payload.exp * 1000) : undefined,
-        issuedAt: payload.iat ? new Date(payload.iat * 1000) : undefined,
-      };
+      return buildResult(payload);
     },
   };
 }
