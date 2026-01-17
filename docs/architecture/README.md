@@ -120,16 +120,27 @@ Reference: `docs/architecture/diagrams/05-deployment-topology.mmd`
 - **Ledger:** M4-001..M4-003/M4-008/M4-009
 - **Measurement:** M6-001..M6-006 (plus follow-ups for export/report/baselines)
 
+## Component Architecture
+
+Detailed architecture documentation for each major component:
+
+- [Gateway Architecture](gateway/README.md) - Policy, tokens, signaling
+  - [Gateway API Reference](gateway/API.md)
+  - [Gateway Data Flows](gateway/DATAFLOW.md)
+- [Robot Agent Architecture](robot-agent/README.md) - Video, control, safety
+  - [Robot Agent API](robot-agent/API.md)
+  - [Robot Agent Data Flow](robot-agent/DATAFLOW.md)
+
 More detailed interface and security notes:
 
-- `docs/architecture/INTERFACES.md`
-- `docs/architecture/SECURITY.md`
-- `docs/architecture/OBSERVABILITY.md`
-- `docs/architecture/POLICY.md`
-- `docs/architecture/AUDIT.md`
-- `docs/architecture/IDENTITY.md`
-- `docs/architecture/REVOCATION.md`
-- `docs/architecture/RELIABILITY.md`
-- `docs/architecture/ROADMAP.md`
-- `docs/architecture/CHECKLIST.md`
-- `docs/architecture/DECISIONS.md`
+- `INTERFACES.md`
+- `SECURITY.md`
+- `OBSERVABILITY.md`
+- `POLICY.md`
+- `AUDIT.md`
+- `IDENTITY.md`
+- `REVOCATION.md`
+- `RELIABILITY.md`
+- `ROADMAP.md`
+- `CHECKLIST.md`
+- `DECISIONS.md`

@@ -1,0 +1,83 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#4A90D9', 'primaryTextColor': '#fff', 'primaryBorderColor': '#2E5A8E', 'lineColor': '#666', 'secondaryColor': '#006100'}}}%%
+graph TB
+    subgraph External["External Clients"]
+        Console["Web Console"]
+        Admin["Admin"]
+    end
+
+    subgraph Gateway["Gateway Service"]
+        subgraph API["HTTP/WS Layer"]
+            Health["Health\n/health"]
+            Sessions["Sessions\n/v1/sessions"]
+            Revocations["Revocations\n/v1/revocations"]
+            AuditAPI["Audit Query\n/v1/audit"]
+            JWKS["JWKS\n/.well-known/jwks.json"]
+            Signal["Signaling\n/v1/signal (WS)"]
+        end
+
+        subgraph Core["Core Components"]
+            IdVerifier["Identity\nVerifier"]
+            PolicyEngine["Policy\nEngine"]
+            TokenIssuer["Token\nIssuer"]
+            SessionMgr["Session\nManager"]
+        end
+
+        subgraph State["State Management"]
+            RevCache["Revocation\nCache"]
+            SessionStore["Session\nStore"]
+        end
+
+        subgraph Async["Async Processing"]
+            AuditQueue["Audit\nQueue"]
+            AuditPublisher["Audit\nPublisher"]
+        end
+    end
+
+    subgraph Robot["Robot Domain"]
+        RobotAgent["Robot Agent"]
+    end
+
+    subgraph Ledger["Blockchain"]
+        Fabric["Hyperledger\nFabric"]
+    end
+
+    Console --> Sessions
+    Console --> Signal
+    Admin --> Revocations
+    Admin --> AuditAPI
+
+    Sessions --> IdVerifier
+    Sessions --> PolicyEngine
+    Sessions --> TokenIssuer
+    Sessions --> SessionMgr
+
+    Revocations --> RevCache
+    Revocations --> SessionMgr
+    Revocations --> Signal
+
+    IdVerifier --> PolicyEngine
+    PolicyEngine --> TokenIssuer
+    TokenIssuer --> SessionMgr
+    SessionMgr --> SessionStore
+
+    SessionMgr --> AuditQueue
+    AuditQueue --> AuditPublisher
+    AuditPublisher -.->|async| Fabric
+
+    Signal --> SessionMgr
+    Signal --> RobotAgent
+    RobotAgent --> JWKS
+
+    classDef api fill:#4A90D9,stroke:#2E5A8E,color:#fff
+    classDef core fill:#50C878,stroke:#2E8B57,color:#fff
+    classDef state fill:#FFB347,stroke:#CC8400,color:#000
+    classDef async fill:#DDA0DD,stroke:#8B008B,color:#000
+    classDef external fill:#E8E8E8,stroke:#666,color:#000
+    classDef ledger fill:#CD853F,stroke:#8B4513,color:#fff
+
+    class Health,Sessions,Revocations,AuditAPI,JWKS,Signal api
+    class IdVerifier,PolicyEngine,TokenIssuer,SessionMgr core
+    class RevCache,SessionStore state
+    class AuditQueue,AuditPublisher async
+    class Console,Admin external
+    class Fabric ledger

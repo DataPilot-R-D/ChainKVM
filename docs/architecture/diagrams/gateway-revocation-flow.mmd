@@ -1,0 +1,42 @@
+%%{init: {'theme': 'base'}}%%
+sequenceDiagram
+    participant A as Admin
+    participant G as Gateway
+    participant C as Web Console
+    participant R as Robot Agent
+    participant F as Fabric (async)
+
+    Note over A,R: Session Revocation Flow
+
+    A->>G: POST /v1/revocations<br/>{session_id, reason}
+
+    activate G
+    G->>G: Update revocation cache
+    G->>G: Mark session revoked
+
+    par Push to connected peers
+        G->>C: WS: revoked {session_id, reason}
+        G->>R: WS: revoked {session_id, reason}
+    end
+
+    G->>A: {revoked_sessions, revoked_at}
+    deactivate G
+
+    G-->>F: SESSION_REVOKED (async)
+
+    activate C
+    C->>C: Disable control UI
+    C->>C: Show revocation message
+    deactivate C
+
+    activate R
+    R->>R: Enter safe-stop state
+    R->>R: Terminate control acceptance
+    R->>R: Stop motors (if applicable)
+    deactivate R
+
+    Note over A,R: Session Terminated
+
+    Note over C,G: Reconnection Blocked
+    C->>G: POST /v1/sessions (retry)
+    G->>C: 403 Forbidden<br/>(operator/session revoked)
