@@ -3,6 +3,7 @@
  */
 export type {
   CapabilityTokenClaims,
+  SigningKey,
   TokenGenerationInput,
   TokenGenerationResult,
 } from './types.js';

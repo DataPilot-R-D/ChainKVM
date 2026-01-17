@@ -2,6 +2,10 @@
  * Capability token types for session authorization.
  * Tokens are JWT-based and signed with Ed25519 (EdDSA).
  */
+import type * as jose from 'jose';
+
+/** Ed25519 signing key type (compatible with jose library). */
+export type SigningKey = jose.CryptoKey | jose.KeyObject;
 
 /** Claims contained in a capability token JWT. */
 export interface CapabilityTokenClaims {

@@ -2,10 +2,7 @@
  * Capability token generator using Ed25519 (EdDSA) signing.
  */
 import * as jose from 'jose';
-import type { TokenGenerationInput, TokenGenerationResult } from './types.js';
-
-/** Private key type for signing. */
-type PrivateKey = jose.CryptoKey | jose.KeyObject;
+import type { SigningKey, TokenGenerationInput, TokenGenerationResult } from './types.js';
 
 /** Token generator interface. */
 export interface TokenGenerator {
@@ -19,7 +16,7 @@ export interface TokenGenerator {
  * @param keyId - Key ID to include in JWT header
  */
 export async function createTokenGenerator(
-  privateKey: PrivateKey,
+  privateKey: SigningKey,
   keyId: string
 ): Promise<TokenGenerator> {
   return {

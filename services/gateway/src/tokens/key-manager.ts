@@ -3,14 +3,12 @@
  * For POC: generates ephemeral key pair on startup.
  */
 import * as jose from 'jose';
-
-/** Private key type for Ed25519 signing. */
-type PrivateKey = jose.CryptoKey | jose.KeyObject;
+import type { SigningKey } from './types.js';
 
 /** Key manager interface. */
 export interface KeyManager {
   /** Get the private key for signing tokens. */
-  getSigningKey(): PrivateKey;
+  getSigningKey(): SigningKey;
   /** Get the key ID for the current signing key. */
   getKeyId(): string;
   /** Get the public key as a JWK for JWKS endpoint. */
