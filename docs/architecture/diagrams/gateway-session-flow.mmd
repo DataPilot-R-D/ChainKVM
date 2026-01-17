@@ -1,0 +1,55 @@
+%%{init: {'theme': 'base'}}%%
+sequenceDiagram
+    participant C as Web Console
+    participant G as Gateway
+    participant R as Robot Agent
+    participant F as Fabric (async)
+
+    Note over C,R: Session Establishment
+
+    C->>G: POST /v1/sessions<br/>{robot_id, operator_did, vc_or_vp, scope}
+
+    activate G
+    G->>G: Verify VC signature
+    G->>G: Check issuer trust
+    G->>G: Evaluate policy
+    G->>G: Issue capability token (JWT)
+    G-->>F: SESSION_REQUESTED (async)
+    G-->>F: SESSION_GRANTED (async)
+    G->>C: {session_id, token, signaling_url, ice_servers}
+    deactivate G
+
+    Note over C,R: WebSocket Signaling
+
+    C->>G: WS connect /v1/signal
+    R->>G: WS connect /v1/signal
+
+    C->>G: join {session_id, role: console}
+    R->>G: join {session_id, role: robot}
+
+    C->>G: offer {sdp}
+    G->>R: offer {sdp}
+    R->>G: answer {sdp}
+    G->>C: answer {sdp}
+
+    C->>G: ice {candidate}
+    G->>R: ice {candidate}
+    R->>G: ice {candidate}
+    G->>C: ice {candidate}
+
+    Note over C,R: WebRTC P2P Established
+
+    C->>R: DataChannel: auth {session_id, token}
+
+    activate R
+    R->>R: Validate token signature
+    R->>R: Check exp, aud, scope
+    R->>C: DataChannel: auth_ok {scope, expires_at}
+    deactivate R
+
+    G-->>F: SESSION_STARTED (async)
+
+    Note over C,R: Control Session Active
+
+    C->>R: DataChannel: control commands
+    R->>C: SRTP: video stream
