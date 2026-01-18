@@ -4,7 +4,6 @@ import type { WebSocket } from 'ws';
 import type { SignalingMessage, ErrorMessage } from '../types.js';
 import type { TokenRegistry } from '../tokens/index.js';
 
-// Room-based signaling: session_id -> connected peers
 interface Peer {
   ws: WebSocket;
   role: 'operator' | 'robot';
@@ -14,21 +13,19 @@ interface Peer {
 const rooms = new Map<string, Map<string, Peer>>();
 let tokenRegistry: TokenRegistry | null = null;
 
-/** Set the token registry for validation. */
 export function setTokenRegistry(registry: TokenRegistry): void {
   tokenRegistry = registry;
 }
 
-/** Decode JWT payload without verification. Returns { jti, sid } or null. */
 function decodeTokenClaims(token: string): { jti: string; sid: string } | null {
+  const parts = token.split('.');
+  if (parts.length !== 3) return null;
+
   try {
-    const parts = token.split('.');
-    if (parts.length !== 3) return null;
     const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
-    if (typeof payload.jti !== 'string' || typeof payload.sid !== 'string') {
-      return null;
-    }
-    return { jti: payload.jti, sid: payload.sid };
+    const { jti, sid } = payload;
+    if (typeof jti !== 'string' || typeof sid !== 'string') return null;
+    return { jti, sid };
   } catch {
     return null;
   }
@@ -55,13 +52,94 @@ function sendError(ws: WebSocket, code: string, message: string): void {
   ws.send(JSON.stringify(error));
 }
 
+function leaveRoom(peerId: string, sessionId: string): void {
+  const room = rooms.get(sessionId);
+  room?.delete(peerId);
+  if (room?.size === 0) rooms.delete(sessionId);
+}
+
+function joinRoom(peerId: string, sessionId: string, ws: WebSocket, role: 'operator' | 'robot'): void {
+  if (!rooms.has(sessionId)) rooms.set(sessionId, new Map());
+  rooms.get(sessionId)!.set(peerId, { ws, role, sessionId });
+}
+
+interface PeerState {
+  sessionId: string | null;
+  role: 'operator' | 'robot' | null;
+}
+
+function validateJoinToken(
+  msg: { session_id: string; token?: string },
+): { error: { code: string; message: string } } | { claims: { jti: string; sid: string } } {
+  if (!msg.token) {
+    return { error: { code: 'missing_token', message: 'Token is required' } };
+  }
+
+  const claims = decodeTokenClaims(msg.token);
+  if (!claims) {
+    return { error: { code: 'invalid_token', message: 'Invalid token format' } };
+  }
+
+  if (claims.sid !== msg.session_id) {
+    return { error: { code: 'session_mismatch', message: 'Token session does not match' } };
+  }
+
+  if (tokenRegistry && !tokenRegistry.isValid(claims.jti)) {
+    return { error: { code: 'token_invalid', message: 'Token is not valid or expired' } };
+  }
+
+  return { claims };
+}
+
+function handleJoin(
+  ws: WebSocket,
+  peerId: string,
+  state: PeerState,
+  msg: { session_id: string; role: 'operator' | 'robot'; token?: string },
+): void {
+  const result = validateJoinToken(msg);
+  if ('error' in result) {
+    sendError(ws, result.error.code, result.error.message);
+    return;
+  }
+
+  if (state.sessionId) leaveRoom(peerId, state.sessionId);
+
+  state.sessionId = msg.session_id;
+  state.role = msg.role;
+  joinRoom(peerId, msg.session_id, ws, msg.role);
+
+  broadcast(msg.session_id, { type: 'session_state', session_id: msg.session_id, state: `${msg.role}_joined` }, peerId);
+  ws.send(JSON.stringify({ type: 'session_state', session_id: msg.session_id, state: 'joined' }));
+}
+
+function handleLeave(peerId: string, state: PeerState): void {
+  if (!state.sessionId) return;
+
+  leaveRoom(peerId, state.sessionId);
+  broadcast(state.sessionId, { type: 'session_state', session_id: state.sessionId, state: `${state.role}_left` });
+  state.sessionId = null;
+  state.role = null;
+}
+
+function handleDisconnect(peerId: string, state: PeerState): void {
+  if (!state.sessionId) return;
+
+  const room = rooms.get(state.sessionId);
+  room?.delete(peerId);
+
+  if (room?.size === 0) {
+    rooms.delete(state.sessionId);
+  } else {
+    broadcast(state.sessionId, { type: 'session_state', session_id: state.sessionId, state: `${state.role}_disconnected` });
+  }
+}
+
 export async function signalingRoutes(app: FastifyInstance): Promise<void> {
-  // WebSocket signaling endpoint
   app.get('/v1/signal', { websocket: true }, (connection: SocketStream, request) => {
     const socket = connection.socket;
     const peerId = getPeerId();
-    let currentSessionId: string | null = null;
-    let currentRole: 'operator' | 'robot' | null = null;
+    const state: PeerState = { sessionId: null, role: null };
 
     request.log.info({ peerId }, 'WebSocket connected');
 
@@ -77,81 +155,21 @@ export async function signalingRoutes(app: FastifyInstance): Promise<void> {
       request.log.debug({ peerId, type: msg.type }, 'Received signaling message');
 
       switch (msg.type) {
-        case 'join': {
-          const { session_id, role, token } = msg;
-
-          // Validate token presence and format
-          if (!token) {
-            sendError(socket, 'missing_token', 'Token is required');
-            return;
-          }
-
-          const claims = decodeTokenClaims(token);
-          if (!claims) {
-            sendError(socket, 'invalid_token', 'Invalid token format');
-            return;
-          }
-
-          // Validate session matches token
-          if (claims.sid !== session_id) {
-            sendError(socket, 'session_mismatch', 'Token session does not match');
-            return;
-          }
-
-          // Validate token in registry (if configured)
-          if (tokenRegistry && !tokenRegistry.isValid(claims.jti)) {
-            sendError(socket, 'token_invalid', 'Token is not valid or expired');
-            return;
-          }
-
-          // Leave previous room if any
-          if (currentSessionId) {
-            const oldRoom = rooms.get(currentSessionId);
-            oldRoom?.delete(peerId);
-            if (oldRoom?.size === 0) rooms.delete(currentSessionId);
-          }
-
-          // Join new room
-          currentSessionId = session_id;
-          currentRole = role;
-
-          if (!rooms.has(session_id)) {
-            rooms.set(session_id, new Map());
-          }
-          rooms.get(session_id)!.set(peerId, { ws: socket, role, sessionId: session_id });
-
-          // Notify other peers in the room
-          broadcast(session_id, { type: 'session_state', session_id, state: `${role}_joined` }, peerId);
-
-          // Confirm join
-          socket.send(JSON.stringify({ type: 'session_state', session_id, state: 'joined' }));
+        case 'join':
+          handleJoin(socket, peerId, state, msg);
           break;
-        }
-
         case 'offer':
         case 'answer':
-        case 'ice': {
-          if (!currentSessionId) {
+        case 'ice':
+          if (!state.sessionId) {
             sendError(socket, 'not_joined', 'Must join a session first');
             return;
           }
-          // Forward to other peers in the same session
-          broadcast(currentSessionId, msg, peerId);
+          broadcast(state.sessionId, msg, peerId);
           break;
-        }
-
-        case 'leave': {
-          if (currentSessionId) {
-            const room = rooms.get(currentSessionId);
-            room?.delete(peerId);
-            if (room?.size === 0) rooms.delete(currentSessionId);
-            broadcast(currentSessionId, { type: 'session_state', session_id: currentSessionId, state: `${currentRole}_left` });
-            currentSessionId = null;
-            currentRole = null;
-          }
+        case 'leave':
+          handleLeave(peerId, state);
           break;
-        }
-
         default:
           sendError(socket, 'unknown_type', `Unknown message type: ${(msg as { type: string }).type}`);
       }
@@ -159,19 +177,7 @@ export async function signalingRoutes(app: FastifyInstance): Promise<void> {
 
     socket.on('close', () => {
       request.log.info({ peerId }, 'WebSocket disconnected');
-      if (currentSessionId) {
-        const room = rooms.get(currentSessionId);
-        room?.delete(peerId);
-        if (room?.size === 0) {
-          rooms.delete(currentSessionId);
-        } else {
-          broadcast(currentSessionId, {
-            type: 'session_state',
-            session_id: currentSessionId,
-            state: `${currentRole}_disconnected`,
-          });
-        }
-      }
+      handleDisconnect(peerId, state);
     });
 
     socket.on('error', (err) => {
@@ -180,15 +186,14 @@ export async function signalingRoutes(app: FastifyInstance): Promise<void> {
   });
 }
 
-// Export for revocation integration
 export function notifyRevocation(sessionId: string, reason: string): void {
   broadcast(sessionId, { type: 'revoked', session_id: sessionId, reason });
-  // Close all connections in the room
+
   const room = rooms.get(sessionId);
-  if (room) {
-    for (const peer of room.values()) {
-      peer.ws.close(1000, 'Session revoked');
-    }
-    rooms.delete(sessionId);
+  if (!room) return;
+
+  for (const peer of room.values()) {
+    peer.ws.close(1000, 'Session revoked');
   }
+  rooms.delete(sessionId);
 }
