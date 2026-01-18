@@ -1,9 +1,17 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import type { CreateRevocationRequest, CreateRevocationResponse } from '../types.js';
+import type { TokenRegistry } from '../tokens/index.js';
 import { updateSessionState } from './sessions.js';
+import { notifyRevocation } from './signaling.js';
 
 // In-memory revocation store (stub)
 const revocations = new Map<string, { session_ids: string[]; reason: string; timestamp: string }>();
+
+let tokenRegistry: TokenRegistry | null = null;
+
+export function setTokenRegistry(registry: TokenRegistry): void {
+  tokenRegistry = registry;
+}
 
 function generateRevocationId(): string {
   return `rev_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
@@ -28,16 +36,29 @@ export async function revocationRoutes(app: FastifyInstance): Promise<void> {
 
       if (session_id) {
         // Revoke specific session
-        const updated = updateSessionState(session_id, 'revoked');
-        if (updated) {
+        const sessionUpdated = updateSessionState(session_id, 'revoked');
+        // Revoke all tokens for this session
+        const tokensRevoked = tokenRegistry?.revokeBySession(session_id) ?? 0;
+        // Session is affected if either session state was updated or tokens were revoked
+        if (sessionUpdated || tokensRevoked > 0) {
           affectedSessions.push(session_id);
+          // Notify connected peers via signaling
+          notifyRevocation(session_id, reason);
         }
       }
 
       if (operator_did) {
-        // TODO: Find and revoke all sessions for this operator
-        // For stub, we just note that this would be implemented
-        request.log.info({ operator_did }, 'Would revoke all sessions for operator');
+        // Find and revoke all sessions for this operator
+        if (tokenRegistry) {
+          const revokedSessionIds = tokenRegistry.revokeByOperator(operator_did);
+          for (const sid of revokedSessionIds) {
+            updateSessionState(sid, 'revoked');
+            affectedSessions.push(sid);
+            // Notify connected peers via signaling
+            notifyRevocation(sid, reason);
+          }
+          request.log.info({ operator_did, sessions: revokedSessionIds.length }, 'Revoked all sessions for operator');
+        }
       }
 
       const timestamp = new Date().toISOString();
@@ -48,8 +69,13 @@ export async function revocationRoutes(app: FastifyInstance): Promise<void> {
         timestamp,
       });
 
-      // TODO: Emit SESSION_REVOKED audit event (async to Fabric)
-      // TODO: Push revocation to peers via signaling WebSocket
+      // Stub: Emit SESSION_REVOKED audit event (async to Fabric in M4)
+      request.log.info({
+        event_type: 'SESSION_REVOKED',
+        revocation_id: revocationId,
+        affected_sessions: affectedSessions,
+        reason,
+      }, 'Audit event: SESSION_REVOKED (stub - Fabric integration in M4)');
 
       const response: CreateRevocationResponse = {
         revocation_id: revocationId,

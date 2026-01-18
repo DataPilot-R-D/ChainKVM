@@ -100,6 +100,25 @@ When referencing PRD sections in task files:
 
 ## Agent Workflow
 
+### CRITICAL: Stop Points (BLOCKING)
+
+**After creating a PR, you MUST:**
+1. STOP and wait for user to review/approve
+2. DO NOT mark todos as "completed"
+3. DO NOT write summary as if work is done
+4. Say: "PR created: [link]. Waiting for your review."
+
+**Task is NOT complete until:**
+- [ ] User explicitly approves PR (says "approved", "merge it", "LGTM", etc.)
+- [ ] PR is merged to main
+- [ ] Task file moved to `roadmap/done/`
+
+**NEVER say these phrases until PR is merged:**
+- "Implementation complete"
+- "All tasks completed"
+- "Summary of what was done"
+- Any language implying the work is finished
+
 ### Task Execution Rules
 
 1. **Single Task Focus**
@@ -120,12 +139,24 @@ When referencing PRD sections in task files:
    - No code without corresponding tests
 
 4. **Definition of Done**
-   Before marking task complete:
+
+   **Phase 1: Implementation (you do this)**
    - [ ] Tests written and passing (green)
    - [ ] Code refactored and clean
-   - [ ] UAT scenarios verified
-   - [ ] Task DoD checklist completed
-   - [ ] Docs updated
+   - [ ] UAT scenarios from task file verified
+   - [ ] Task-specific DoD checklist items completed
+   - [ ] PR created
+
+   **Phase 2: Review (BLOCKING - wait for user)**
+   - [ ] PR reviewed by user
+   - [ ] User approves (explicit approval required)
+
+   **Phase 3: Completion (only after user approval)**
+   - [ ] PR merged to main
+   - [ ] Task file moved to `roadmap/done/`
+   - [ ] Feature branch deleted
+
+   **YOU MUST STOP AFTER PHASE 1 AND WAIT FOR USER**
 
 5. **Git Branch Workflow**
    - Branch naming: `feature/M#-###-task-name`
@@ -143,14 +174,19 @@ When referencing PRD sections in task files:
    git add . && git commit -m "feat(agent): implement control command handler"
    git add . && git commit -m "refactor(agent): extract validation logic"
 
-   # 4. Create PR when complete
+   # 4. Create PR when implementation complete
    gh pr create --title "feat(agent): M1-001 task title" --body "..."
 
-   # 5. PR Review, merge, cleanup
+   # ⛔ STOP HERE - WAIT FOR USER REVIEW ⛔
+   # Say: "PR created: [link]. Waiting for your review."
+   # DO NOT proceed until user says "approved" / "merge it" / "LGTM"
+
+   # 5. ONLY after user approval: merge and cleanup
    gh pr merge --squash && git branch -d feature/M1-001-task-name
 
    # 6. Move task to done
    mv roadmap/in_progress/M1-001-task.md roadmap/done/
+   git add roadmap/ && git commit -m "chore: move M1-001 task to done"
    ```
 
 6. **Continuous Learning**

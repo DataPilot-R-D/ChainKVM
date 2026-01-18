@@ -44,6 +44,10 @@ export interface TokenRegistry {
   getBySession(sessionId: string): TokenEntry[];
   /** Revoke all tokens for a session. Returns count revoked. */
   revokeBySession(sessionId: string): number;
+  /** Get all tokens for an operator. */
+  getByOperator(operatorDid: string): TokenEntry[];
+  /** Revoke all tokens for an operator. Returns session IDs of revoked tokens. */
+  revokeByOperator(operatorDid: string): string[];
   /** Get number of registered tokens. */
   size(): number;
 }
@@ -123,6 +127,17 @@ export function createTokenRegistry(): TokenRegistry {
       const sessionTokens = this.getBySession(sessionId);
       sessionTokens.forEach((entry) => tokens.delete(entry.jti));
       return sessionTokens.length;
+    },
+
+    getByOperator(operatorDid: string): TokenEntry[] {
+      return [...tokens.values()].filter((entry) => entry.operatorDid === operatorDid);
+    },
+
+    revokeByOperator(operatorDid: string): string[] {
+      const operatorTokens = this.getByOperator(operatorDid);
+      const sessionIds = [...new Set(operatorTokens.map((entry) => entry.sessionId))];
+      operatorTokens.forEach((entry) => tokens.delete(entry.jti));
+      return sessionIds;
     },
 
     size(): number {
