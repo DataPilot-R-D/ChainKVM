@@ -19,8 +19,15 @@ type cachedToken struct {
 	cachedAt time.Time
 }
 
+// DefaultCacheTTL is used when an invalid TTL is provided.
+const DefaultCacheTTL = 30 * time.Second
+
 // NewTokenCache creates a new token cache with the given TTL.
+// If TTL is <= 0, DefaultCacheTTL (30s) is used.
 func NewTokenCache(ttl time.Duration) *TokenCache {
+	if ttl <= 0 {
+		ttl = DefaultCacheTTL
+	}
 	return &TokenCache{
 		cache: make(map[string]*cachedToken),
 		ttl:   ttl,

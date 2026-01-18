@@ -4,6 +4,7 @@ package session
 import (
 	"crypto/ed25519"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -14,6 +15,8 @@ var (
 	ErrInvalidSignature = errors.New("invalid signature")
 	ErrInvalidAudience  = errors.New("invalid audience")
 	ErrSessionMismatch  = errors.New("session ID mismatch")
+	ErrMalformedToken   = errors.New("malformed token")
+	ErrTokenNotYetValid = errors.New("token not yet valid")
 )
 
 // TokenClaims holds validated JWT claims.
@@ -71,13 +74,18 @@ func (v *TokenValidator) keyFunc(token *jwt.Token) (any, error) {
 
 // mapError converts jwt library errors to our error types.
 func (v *TokenValidator) mapError(err error) error {
-	if errors.Is(err, jwt.ErrTokenExpired) {
+	switch {
+	case errors.Is(err, jwt.ErrTokenExpired):
 		return ErrTokenExpired
-	}
-	if errors.Is(err, jwt.ErrTokenSignatureInvalid) {
+	case errors.Is(err, jwt.ErrTokenSignatureInvalid):
 		return ErrInvalidSignature
+	case errors.Is(err, jwt.ErrTokenMalformed):
+		return ErrMalformedToken
+	case errors.Is(err, jwt.ErrTokenNotValidYet):
+		return ErrTokenNotYetValid
+	default:
+		return fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
-	return ErrInvalidSignature
 }
 
 // extractClaims extracts and validates claims from token.

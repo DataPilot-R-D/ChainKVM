@@ -246,6 +246,175 @@ func createTestToken(t *testing.T, priv ed25519.PrivateKey, claims jwt.MapClaims
 	return signed
 }
 
+func TestManager_ValidateToken_ConcurrentAccess(t *testing.T) {
+	pub, priv := testKeyPair(t)
+	robotID := "robot-001"
+	sessionID := "session-123"
+
+	validator := NewTokenValidator(pub, robotID, 30*time.Second)
+	mgr := NewManager(robotID, validator)
+
+	token := createTestToken(t, priv, jwt.MapClaims{
+		"jti":   "token-concurrent",
+		"sub":   "did:key:operator",
+		"aud":   robotID,
+		"sid":   sessionID,
+		"scope": []any{"teleop:control"},
+		"iat":   time.Now().Unix(),
+		"exp":   time.Now().Add(1 * time.Hour).Unix(),
+	})
+
+	// Run 100 concurrent validations
+	const goroutines = 100
+	errCh := make(chan error, goroutines)
+
+	for i := 0; i < goroutines; i++ {
+		go func() {
+			_, err := mgr.ValidateToken(sessionID, token)
+			errCh <- err
+		}()
+	}
+
+	// Collect all results
+	for i := 0; i < goroutines; i++ {
+		err := <-errCh
+		assert.NoError(t, err, "concurrent validation should succeed")
+	}
+}
+
+func TestManager_ValidateToken_AfterReset(t *testing.T) {
+	pub, priv := testKeyPair(t)
+	robotID := "robot-001"
+	sessionID := "session-123"
+
+	validator := NewTokenValidator(pub, robotID, 30*time.Second)
+	mgr := NewManager(robotID, validator)
+
+	token := createTestToken(t, priv, jwt.MapClaims{
+		"jti":   "token-reset-test",
+		"sub":   "did:key:operator",
+		"aud":   robotID,
+		"sid":   sessionID,
+		"scope": []any{"teleop:control"},
+		"iat":   time.Now().Unix(),
+		"exp":   time.Now().Add(1 * time.Hour).Unix(),
+	})
+
+	// First validation
+	info, err := mgr.ValidateToken(sessionID, token)
+	require.NoError(t, err)
+
+	// Activate and then terminate
+	err = mgr.Activate(info)
+	require.NoError(t, err)
+	mgr.Terminate()
+
+	// Validation should fail after termination
+	_, err = mgr.ValidateToken(sessionID, token)
+	assert.ErrorIs(t, err, ErrSessionTerminated)
+
+	// Reset manager
+	mgr.Reset()
+
+	// Validation should work again after reset
+	info2, err := mgr.ValidateToken(sessionID, token)
+	require.NoError(t, err)
+	assert.Equal(t, sessionID, info2.SessionID)
+}
+
+func TestManager_ValidateToken_NilValidator(t *testing.T) {
+	robotID := "robot-001"
+
+	// Create manager without validator
+	mgr := NewManager(robotID, nil)
+
+	_, err := mgr.ValidateToken("session-123", "some-token")
+
+	assert.ErrorIs(t, err, ErrInvalidToken)
+}
+
+func TestTokenValidator_MalformedTokenError(t *testing.T) {
+	pub, _ := testKeyPair(t)
+	robotID := "robot-001"
+
+	validator := NewTokenValidator(pub, robotID, 30*time.Second)
+
+	_, err := validator.Validate("not.a.valid.jwt", "session-123")
+
+	assert.ErrorIs(t, err, ErrMalformedToken)
+}
+
+func TestTokenValidator_TokenNotYetValid(t *testing.T) {
+	pub, priv := testKeyPair(t)
+	robotID := "robot-001"
+	sessionID := "session-123"
+
+	// No clock skew tolerance
+	validator := NewTokenValidator(pub, robotID, 0)
+
+	// Token starts 1 hour in the future
+	claims := jwt.MapClaims{
+		"jti":   "token-future",
+		"sub":   "did:key:test-operator",
+		"aud":   robotID,
+		"sid":   sessionID,
+		"scope": []any{"teleop:view"},
+		"nbf":   time.Now().Add(1 * time.Hour).Unix(),
+		"iat":   time.Now().Add(1 * time.Hour).Unix(),
+		"exp":   time.Now().Add(2 * time.Hour).Unix(),
+	}
+	token := createTestToken(t, priv, claims)
+
+	_, err := validator.Validate(token, sessionID)
+
+	assert.ErrorIs(t, err, ErrTokenNotYetValid)
+}
+
+func TestTokenValidator_MissingAudience(t *testing.T) {
+	pub, priv := testKeyPair(t)
+	robotID := "robot-001"
+	sessionID := "session-123"
+
+	validator := NewTokenValidator(pub, robotID, 30*time.Second)
+
+	// Token without aud claim
+	claims := jwt.MapClaims{
+		"jti":   "token-no-aud",
+		"sub":   "did:key:test-operator",
+		"sid":   sessionID,
+		"scope": []any{"teleop:view"},
+		"iat":   time.Now().Unix(),
+		"exp":   time.Now().Add(1 * time.Hour).Unix(),
+	}
+	token := createTestToken(t, priv, claims)
+
+	_, err := validator.Validate(token, sessionID)
+
+	assert.ErrorIs(t, err, ErrInvalidAudience)
+}
+
+func TestTokenValidator_MissingSessionID(t *testing.T) {
+	pub, priv := testKeyPair(t)
+	robotID := "robot-001"
+
+	validator := NewTokenValidator(pub, robotID, 30*time.Second)
+
+	// Token without sid claim
+	claims := jwt.MapClaims{
+		"jti":   "token-no-sid",
+		"sub":   "did:key:test-operator",
+		"aud":   robotID,
+		"scope": []any{"teleop:view"},
+		"iat":   time.Now().Unix(),
+		"exp":   time.Now().Add(1 * time.Hour).Unix(),
+	}
+	token := createTestToken(t, priv, claims)
+
+	_, err := validator.Validate(token, "session-123")
+
+	assert.ErrorIs(t, err, ErrSessionMismatch)
+}
+
 func BenchmarkManager_ValidateToken_Cold(b *testing.B) {
 	pub, priv, _ := ed25519.GenerateKey(rand.Reader)
 	robotID := "robot-001"
