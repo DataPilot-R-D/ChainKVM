@@ -25,3 +25,8 @@ export {
   type IssuerTrustConfig,
   type IssuerTrustList,
 } from './issuer-trust.js';
+
+export {
+  extractCredentialForPolicy,
+  CredentialExtractionError,
+} from './credential-extractor.js';
