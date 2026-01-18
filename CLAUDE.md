@@ -100,24 +100,18 @@ When referencing PRD sections in task files:
 
 ## Agent Workflow
 
-### CRITICAL: Stop Points (BLOCKING)
+### CRITICAL: PR Review Process
 
 **After creating a PR, you MUST:**
-1. STOP and wait for user to review/approve
-2. DO NOT mark todos as "completed"
-3. DO NOT write summary as if work is done
-4. Say: "PR created: [link]. Waiting for your review."
+1. Run `/pr-review-toolkit:review-pr` to perform automated code review
+2. Address any issues found by the review
+3. If review passes, proceed to merge
+4. If review fails, fix issues and re-run review
 
 **Task is NOT complete until:**
-- [ ] User explicitly approves PR (says "approved", "merge it", "LGTM", etc.)
+- [ ] Automated PR review passes
 - [ ] PR is merged to main
 - [ ] Task file moved to `roadmap/done/`
-
-**NEVER say these phrases until PR is merged:**
-- "Implementation complete"
-- "All tasks completed"
-- "Summary of what was done"
-- Any language implying the work is finished
 
 ### Task Execution Rules
 
@@ -140,23 +134,22 @@ When referencing PRD sections in task files:
 
 4. **Definition of Done**
 
-   **Phase 1: Implementation (you do this)**
+   **Phase 1: Implementation**
    - [ ] Tests written and passing (green)
    - [ ] Code refactored and clean
    - [ ] UAT scenarios from task file verified
    - [ ] Task-specific DoD checklist items completed
    - [ ] PR created
 
-   **Phase 2: Review (BLOCKING - wait for user)**
-   - [ ] PR reviewed by user
-   - [ ] User approves (explicit approval required)
+   **Phase 2: Automated Review**
+   - [ ] Run `/pr-review-toolkit:review-pr`
+   - [ ] All review checks pass
+   - [ ] Fix any issues identified
 
-   **Phase 3: Completion (only after user approval)**
+   **Phase 3: Completion**
    - [ ] PR merged to main
    - [ ] Task file moved to `roadmap/done/`
    - [ ] Feature branch deleted
-
-   **YOU MUST STOP AFTER PHASE 1 AND WAIT FOR USER**
 
 5. **Git Branch Workflow**
    - Branch naming: `feature/M#-###-task-name`
@@ -177,11 +170,12 @@ When referencing PRD sections in task files:
    # 4. Create PR when implementation complete
    gh pr create --title "feat(agent): M1-001 task title" --body "..."
 
-   # ⛔ STOP HERE - WAIT FOR USER REVIEW ⛔
-   # Say: "PR created: [link]. Waiting for your review."
-   # DO NOT proceed until user says "approved" / "merge it" / "LGTM"
+   # 4.5. Run automated PR review
+   # Use: /pr-review-toolkit:review-pr
+   # If issues found, fix them and re-run review
+   # If review passes, proceed to merge
 
-   # 5. ONLY after user approval: merge and cleanup
+   # 5. Merge and cleanup
    gh pr merge --squash && git branch -d feature/M1-001-task-name
 
    # 6. Move task to done
