@@ -25,6 +25,7 @@ const testConfig: Config = {
   sessionTtlSeconds: 3600,
   maxControlRateHz: 20,
   maxVideoBitrateKbps: 4000,
+  adminApiKey: 'test-admin-key',
 };
 
 let tokenRegistry: TokenRegistry;

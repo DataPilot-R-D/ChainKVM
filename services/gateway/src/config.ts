@@ -9,6 +9,7 @@ export interface Config {
   sessionTtlSeconds: number;
   maxControlRateHz: number;
   maxVideoBitrateKbps: number;
+  adminApiKey: string;
 }
 
 export function loadConfig(): Config {
@@ -21,5 +22,6 @@ export function loadConfig(): Config {
     sessionTtlSeconds: parseInt(process.env.SESSION_TTL_SECONDS ?? '3600', 10),
     maxControlRateHz: parseInt(process.env.MAX_CONTROL_RATE_HZ ?? '20', 10),
     maxVideoBitrateKbps: parseInt(process.env.MAX_VIDEO_BITRATE_KBPS ?? '4000', 10),
+    adminApiKey: process.env.ADMIN_API_KEY ?? 'chainkvm-admin-dev-key-change-in-prod',
   };
 }

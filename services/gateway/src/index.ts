@@ -84,7 +84,7 @@ async function main() {
   // Register routes
   await app.register(healthRoutes);
   await app.register(async (instance) => sessionRoutes(instance, config));
-  await app.register(revocationRoutes);
+  await app.register(async (instance) => revocationRoutes(instance, config));
   await app.register(auditRoutes);
   await app.register(jwksRoutes);
   await app.register(signalingRoutes);
