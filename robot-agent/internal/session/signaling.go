@@ -4,7 +4,6 @@ package session
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"sync"
 	"time"
@@ -12,42 +11,6 @@ import (
 	"github.com/gorilla/websocket"
 	"go.uber.org/zap"
 )
-
-// SignalType identifies signaling message types.
-type SignalType string
-
-const (
-	SignalJoin   SignalType = "join"
-	SignalOffer  SignalType = "offer"
-	SignalAnswer SignalType = "answer"
-	SignalICE    SignalType = "ice"
-	SignalBye    SignalType = "bye"
-	SignalError  SignalType = "error"
-)
-
-// SignalMessage is the signaling protocol message.
-type SignalMessage struct {
-	Type      SignalType      `json:"type"`
-	RobotID   string          `json:"robot_id,omitempty"`
-	SessionID string          `json:"session_id,omitempty"`
-	Token     string          `json:"token,omitempty"`
-	Payload   json.RawMessage `json:"payload,omitempty"`
-	Error     string          `json:"error,omitempty"`
-}
-
-// Error definitions.
-var (
-	ErrNotConnected = errors.New("not connected to gateway")
-	ErrConnClosed   = errors.New("connection closed")
-)
-
-// SignalingHandler handles incoming signaling messages.
-type SignalingHandler interface {
-	OnOffer(sessionID string, sdp []byte)
-	OnAnswer(sessionID string, sdp []byte)
-	OnICE(sessionID string, candidate []byte)
-	OnBye(sessionID string)
-}
 
 // SignalingClient manages WebSocket connection to Gateway.
 type SignalingClient struct {
@@ -209,7 +172,7 @@ func (c *SignalingClient) handleMessage(msg SignalMessage) {
 
 	switch msg.Type {
 	case SignalOffer:
-		handler.OnOffer(msg.SessionID, msg.Payload)
+		handler.OnOffer(msg.SessionID, msg.Token, msg.Payload)
 	case SignalAnswer:
 		handler.OnAnswer(msg.SessionID, msg.Payload)
 	case SignalICE:

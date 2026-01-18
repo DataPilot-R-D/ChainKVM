@@ -4,6 +4,7 @@ package session
 import (
 	"crypto/ed25519"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -14,10 +15,13 @@ var (
 	ErrInvalidSignature = errors.New("invalid signature")
 	ErrInvalidAudience  = errors.New("invalid audience")
 	ErrSessionMismatch  = errors.New("session ID mismatch")
+	ErrMalformedToken   = errors.New("malformed token")
+	ErrTokenNotYetValid = errors.New("token not yet valid")
 )
 
 // TokenClaims holds validated JWT claims.
 type TokenClaims struct {
+	JTI       string
 	SessionID string
 	Subject   string
 	Scope     []string
@@ -70,13 +74,18 @@ func (v *TokenValidator) keyFunc(token *jwt.Token) (any, error) {
 
 // mapError converts jwt library errors to our error types.
 func (v *TokenValidator) mapError(err error) error {
-	if errors.Is(err, jwt.ErrTokenExpired) {
+	switch {
+	case errors.Is(err, jwt.ErrTokenExpired):
 		return ErrTokenExpired
-	}
-	if errors.Is(err, jwt.ErrTokenSignatureInvalid) {
+	case errors.Is(err, jwt.ErrTokenSignatureInvalid):
 		return ErrInvalidSignature
+	case errors.Is(err, jwt.ErrTokenMalformed):
+		return ErrMalformedToken
+	case errors.Is(err, jwt.ErrTokenNotValidYet):
+		return ErrTokenNotYetValid
+	default:
+		return fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
-	return ErrInvalidSignature
 }
 
 // extractClaims extracts and validates claims from token.
@@ -91,6 +100,7 @@ func (v *TokenValidator) extractClaims(claims jwt.MapClaims, expectedSessionID s
 		return nil, ErrSessionMismatch
 	}
 
+	jti, _ := claims["jti"].(string)
 	sub, _ := claims["sub"].(string)
 	nonce, _ := claims["nonce"].(string)
 
@@ -100,6 +110,7 @@ func (v *TokenValidator) extractClaims(claims jwt.MapClaims, expectedSessionID s
 	}
 
 	return &TokenClaims{
+		JTI:       jti,
 		SessionID: sid,
 		Subject:   sub,
 		Scope:     v.extractScope(claims),
