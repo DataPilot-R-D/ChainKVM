@@ -2,7 +2,14 @@ import Fastify from 'fastify';
 import websocket from '@fastify/websocket';
 import { loadConfig } from './config.js';
 import { healthRoutes } from './routes/health.js';
-import { sessionRoutes, setTokenGenerator, setTokenRegistry } from './routes/sessions.js';
+import {
+  sessionRoutes,
+  setTokenGenerator,
+  setTokenRegistry,
+  setPolicyEvaluator,
+  setPolicyStore,
+} from './routes/sessions.js';
+import { createPolicyStore, createPolicyEvaluator, type PolicyRule } from './policy/index.js';
 import { revocationRoutes } from './routes/revocations.js';
 import { auditRoutes } from './routes/audit.js';
 import { jwksRoutes, setKeyManager } from './routes/jwks.js';
@@ -35,10 +42,35 @@ async function main() {
   const tokenRegistry = createTokenRegistry();
   const expiryMonitor = createExpiryMonitor();
 
+  // Initialize policy store and evaluator with default policy
+  const policyStore = createPolicyStore();
+  const policyEvaluator = createPolicyEvaluator();
+
+  // Create default policy allowing operators to use teleoperation
+  const defaultPolicyRules: PolicyRule[] = [
+    {
+      id: 'allow-operators',
+      effect: 'allow',
+      priority: 100,
+      actions: ['teleop:view', 'teleop:control', 'teleop:estop'],
+      conditions: [
+        { field: 'credential.role', operator: 'in', value: ['operator', 'admin'] },
+      ],
+      description: 'Allow operators and admins to control robots',
+    },
+  ];
+  policyStore.create({
+    id: 'default-policy',
+    name: 'Default Teleoperation Policy',
+    rules: defaultPolicyRules,
+  });
+
   // Configure modules with dependencies
   setKeyManager(keyManager);
   setTokenGenerator(tokenGenerator);
   setTokenRegistry(tokenRegistry);
+  setPolicyEvaluator(policyEvaluator);
+  setPolicyStore(policyStore);
 
   const app = Fastify({
     logger: {

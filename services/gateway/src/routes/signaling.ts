@@ -3,6 +3,7 @@ import type { SocketStream } from '@fastify/websocket';
 import type { WebSocket } from 'ws';
 import type { SignalingMessage, ErrorMessage } from '../types.js';
 import type { TokenRegistry } from '../tokens/index.js';
+import { SignalingErrors } from './signaling-errors.js';
 
 interface Peer {
   ws: WebSocket;
@@ -72,20 +73,20 @@ function validateJoinToken(
   msg: { session_id: string; token?: string },
 ): { error: { code: string; message: string } } | { claims: { jti: string; sid: string } } {
   if (!msg.token) {
-    return { error: { code: 'missing_token', message: 'Token is required' } };
+    return { error: SignalingErrors.MISSING_TOKEN };
   }
 
   const claims = decodeTokenClaims(msg.token);
   if (!claims) {
-    return { error: { code: 'invalid_token', message: 'Invalid token format' } };
+    return { error: SignalingErrors.INVALID_TOKEN };
   }
 
   if (claims.sid !== msg.session_id) {
-    return { error: { code: 'session_mismatch', message: 'Token session does not match' } };
+    return { error: SignalingErrors.SESSION_MISMATCH };
   }
 
   if (tokenRegistry && !tokenRegistry.isValid(claims.jti)) {
-    return { error: { code: 'token_invalid', message: 'Token is not valid or expired' } };
+    return { error: SignalingErrors.TOKEN_INVALID };
   }
 
   return { claims };
@@ -148,7 +149,7 @@ export async function signalingRoutes(app: FastifyInstance): Promise<void> {
       try {
         msg = JSON.parse(data.toString()) as SignalingMessage;
       } catch {
-        sendError(socket, 'invalid_json', 'Failed to parse message');
+        sendError(socket, SignalingErrors.INVALID_JSON.code, SignalingErrors.INVALID_JSON.message);
         return;
       }
 
@@ -162,7 +163,7 @@ export async function signalingRoutes(app: FastifyInstance): Promise<void> {
         case 'answer':
         case 'ice':
           if (!state.sessionId) {
-            sendError(socket, 'not_joined', 'Must join a session first');
+            sendError(socket, SignalingErrors.NOT_JOINED.code, SignalingErrors.NOT_JOINED.message);
             return;
           }
           broadcast(state.sessionId, msg, peerId);
@@ -171,7 +172,7 @@ export async function signalingRoutes(app: FastifyInstance): Promise<void> {
           handleLeave(peerId, state);
           break;
         default:
-          sendError(socket, 'unknown_type', `Unknown message type: ${(msg as { type: string }).type}`);
+          sendError(socket, SignalingErrors.UNKNOWN_TYPE.code, `${SignalingErrors.UNKNOWN_TYPE.message}: ${(msg as { type: string }).type}`);
       }
     });
 

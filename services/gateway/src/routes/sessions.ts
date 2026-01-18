@@ -7,10 +7,14 @@ import type {
 } from '../types.js';
 import type { Config } from '../config.js';
 import type { TokenGenerator, TokenRegistry, TokenEntry } from '../tokens/index.js';
+import type { PolicyEvaluator, PolicyStore } from '../policy/index.js';
+import { evaluateSessionPolicy, isTokenValidForSession } from './session-policy.js';
 
 const sessions = new Map<string, SessionState>();
 let tokenGenerator: TokenGenerator | null = null;
 let tokenRegistry: TokenRegistry | null = null;
+let policyEvaluator: PolicyEvaluator | null = null;
+let policyStore: PolicyStore | null = null;
 
 function generateId(): string {
   return `ses_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
@@ -18,27 +22,6 @@ function generateId(): string {
 
 function registerToken(entry: Omit<TokenEntry, 'jti'> & { jti: string }): void {
   tokenRegistry?.register(entry);
-}
-
-/** Extract jti from JWT token (decode without verification). */
-function extractJtiFromToken(token: string): string | null {
-  try {
-    const parts = token.split('.');
-    if (parts.length !== 3) return null;
-    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
-    return payload.jti ?? null;
-  } catch {
-    return null;
-  }
-}
-
-/** Check if token is valid for the given session. */
-function isTokenValidForSession(token: string, sessionId: string): boolean {
-  if (!tokenRegistry) return true; // Skip validation if registry not configured
-  const jti = extractJtiFromToken(token);
-  if (!jti) return false;
-  const entry = tokenRegistry.get(jti);
-  return entry !== undefined && entry.sessionId === sessionId && tokenRegistry.isValid(jti);
 }
 
 /** Set the token generator. Call before registering routes. */
@@ -51,12 +34,22 @@ export function setTokenRegistry(registry: TokenRegistry): void {
   tokenRegistry = registry;
 }
 
+/** Set the policy evaluator. Call before registering routes. */
+export function setPolicyEvaluator(evaluator: PolicyEvaluator): void {
+  policyEvaluator = evaluator;
+}
+
+/** Set the policy store. Call before registering routes. */
+export function setPolicyStore(store: PolicyStore): void {
+  policyStore = store;
+}
+
 export async function sessionRoutes(app: FastifyInstance, config: Config): Promise<void> {
   // POST /v1/sessions - Create a new session
   app.post<{ Body: CreateSessionRequest }>(
     '/v1/sessions',
     async (request: FastifyRequest<{ Body: CreateSessionRequest }>, reply: FastifyReply) => {
-      const { robot_id, operator_did, requested_scope } = request.body;
+      const { robot_id, operator_did, vc_or_vp, requested_scope } = request.body;
 
       if (!tokenGenerator) {
         return reply.status(500).send({
@@ -65,8 +58,20 @@ export async function sessionRoutes(app: FastifyInstance, config: Config): Promi
         });
       }
 
-      const sessionId = generateId();
       const effectiveScope = requested_scope ?? ['teleop:view', 'teleop:control'];
+
+      // Evaluate policy
+      const policyCheck = evaluateSessionPolicy(
+        { vcOrVp: vc_or_vp, robotId: robot_id, requestedScope: effectiveScope },
+        policyEvaluator,
+        policyStore
+      );
+
+      if (!policyCheck.success) {
+        return reply.status(policyCheck.error.status).send(policyCheck.error.body);
+      }
+
+      const sessionId = generateId();
 
       const tokenResult = await tokenGenerator.generate({
         operatorDid: operator_did,
@@ -110,7 +115,7 @@ export async function sessionRoutes(app: FastifyInstance, config: Config): Promi
           max_control_rate_hz: config.maxControlRateHz,
           max_video_bitrate_kbps: config.maxVideoBitrateKbps,
         },
-        policy: { policy_id: 'default-policy', version: '1.0.0', hash: 'stub-hash-not-computed' },
+        policy: policyCheck.policyResult,
       };
 
       return reply.status(201).send(response);
@@ -177,7 +182,7 @@ export async function sessionRoutes(app: FastifyInstance, config: Config): Promi
       }
 
       // Validate token belongs to this session
-      if (!isTokenValidForSession(bearerToken, session_id)) {
+      if (!isTokenValidForSession(bearerToken, session_id, tokenRegistry)) {
         return reply
           .status(403)
           .send({ error: 'invalid_token', message: 'Token is not valid for this session' });
