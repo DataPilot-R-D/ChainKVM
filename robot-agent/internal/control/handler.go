@@ -14,6 +14,13 @@ var (
 	ErrRobotUnavailable = errors.New("robot API unavailable")
 	ErrUnknownType      = errors.New("unknown message type")
 	ErrInvalidJSON      = errors.New("invalid JSON message")
+	ErrScopeNotAllowed  = errors.New("operation not permitted by scope")
+)
+
+// Scope constants for authorization.
+const (
+	ScopeControl = "teleop:control"
+	ScopeEStop   = "teleop:estop"
 )
 
 // RobotAPI defines the interface for robot control operations.
@@ -31,18 +38,30 @@ type SafetyCallback interface {
 	OnEStop()
 }
 
+// ScopeChecker checks if a scope is allowed for the current session.
+type ScopeChecker interface {
+	HasScope(scope string) bool
+}
+
 // Handler processes control messages and dispatches to robot API.
 type Handler struct {
 	robot     RobotAPI
 	safety    SafetyCallback
+	scopes    ScopeChecker
 	validator *Validator
 }
 
 // NewHandler creates a new control message handler.
-func NewHandler(robot RobotAPI, safety SafetyCallback, staleThreshold time.Duration) *Handler {
+func NewHandler(
+	robot RobotAPI,
+	safety SafetyCallback,
+	scopes ScopeChecker,
+	staleThreshold time.Duration,
+) *Handler {
 	return &Handler{
 		robot:     robot,
 		safety:    safety,
+		scopes:    scopes,
 		validator: NewValidator(staleThreshold),
 	}
 }
@@ -117,6 +136,10 @@ func (h *Handler) HandleMessage(data []byte) (*protocol.AckMessage, error) {
 
 // HandleDrive processes a drive command.
 func (h *Handler) HandleDrive(msg *protocol.DriveMessage) error {
+	if !h.hasScope(ScopeControl) {
+		return ErrScopeNotAllowed
+	}
+
 	if err := h.validator.ValidateDrive(msg); err != nil {
 		h.notifyInvalid()
 		return err
@@ -132,6 +155,10 @@ func (h *Handler) HandleDrive(msg *protocol.DriveMessage) error {
 
 // HandleKVMKey processes a keyboard input command.
 func (h *Handler) HandleKVMKey(msg *protocol.KVMKeyMessage) error {
+	if !h.hasScope(ScopeControl) {
+		return ErrScopeNotAllowed
+	}
+
 	if err := h.validator.ValidateKVMKey(msg); err != nil {
 		h.notifyInvalid()
 		return err
@@ -147,6 +174,10 @@ func (h *Handler) HandleKVMKey(msg *protocol.KVMKeyMessage) error {
 
 // HandleKVMMouse processes a mouse input command.
 func (h *Handler) HandleKVMMouse(msg *protocol.KVMMouseMessage) error {
+	if !h.hasScope(ScopeControl) {
+		return ErrScopeNotAllowed
+	}
+
 	if err := h.validator.ValidateKVMMouse(msg); err != nil {
 		h.notifyInvalid()
 		return err
@@ -188,4 +219,12 @@ func (h *Handler) notifyInvalid() {
 	if h.safety != nil {
 		h.safety.OnInvalidCommand()
 	}
+}
+
+// hasScope checks if the session allows the given scope.
+func (h *Handler) hasScope(scope string) bool {
+	if h.scopes == nil {
+		return true // No scope checker = allow all (for testing)
+	}
+	return h.scopes.HasScope(scope)
 }

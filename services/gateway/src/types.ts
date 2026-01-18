@@ -47,6 +47,12 @@ export interface SessionState {
   effective_scope: string[];
 }
 
+export interface RefreshTokenResponse {
+  session_id: string;
+  capability_token: string;
+  expires_at: string;
+}
+
 // ============ Revocation ============
 
 export interface CreateRevocationRequest {
