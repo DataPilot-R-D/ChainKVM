@@ -30,8 +30,8 @@ As a gateway operator, I want revoked tokens cached for fast lookup so that revo
 - [ ] Metrics for cache hits/misses
 - [ ] Unit tests for cache operations
 - [ ] Tests passing
-- [ ] PR created
 - [ ] Code simplified
+- [ ] PR created
 - [ ] PR reviewed
 - [ ] Merged to main
 

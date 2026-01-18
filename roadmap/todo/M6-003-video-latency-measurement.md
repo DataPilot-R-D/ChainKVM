@@ -32,8 +32,8 @@ As a system architect, I want to measure end-to-end video latency so that I can 
 - [ ] Optional "timer-in-frame" external verification
 - [ ] Export to metrics data store
 - [ ] Tests passing
-- [ ] PR created
 - [ ] Code simplified
+- [ ] PR created
 - [ ] PR reviewed
 - [ ] Merged to main
 

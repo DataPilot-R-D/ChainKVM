@@ -30,8 +30,8 @@ As a site admin, I want to revoke operator access immediately so that unauthoriz
 - [ ] Audit event generation
 - [ ] Unit tests for endpoint
 - [ ] Tests passing
-- [ ] PR created
 - [ ] Code simplified
+- [ ] PR created
 - [ ] PR reviewed
 - [ ] Merged to main
 

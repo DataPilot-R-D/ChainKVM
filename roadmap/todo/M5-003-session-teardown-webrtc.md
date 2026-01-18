@@ -29,8 +29,8 @@ As a gateway operator, I want WebRTC sessions closed on revocation so that revok
 - [ ] Teardown audit event
 - [ ] Unit tests for teardown
 - [ ] Tests passing
-- [ ] PR created
 - [ ] Code simplified
+- [ ] PR created
 - [ ] PR reviewed
 - [ ] Merged to main
 

@@ -31,8 +31,8 @@ As a compliance officer, I want privileged robot actions (E_STOP, MODE_SWITCH) l
 - [ ] Sync on reconnection
 - [ ] Unit tests for publishing
 - [ ] Tests passing
-- [ ] PR created
 - [ ] Code simplified
+- [ ] PR created
 - [ ] PR reviewed
 - [ ] Merged to main
 

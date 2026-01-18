@@ -32,8 +32,8 @@ As a system architect, I want to measure control command round-trip time so that
 - [ ] Configurable measurement interval
 - [ ] Export to metrics data store
 - [ ] Tests passing
-- [ ] PR created
 - [ ] Code simplified
+- [ ] PR created
 - [ ] PR reviewed
 - [ ] Merged to main
 

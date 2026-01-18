@@ -34,8 +34,8 @@ As a system architect, I want to test system performance under simulated WAN con
 - [ ] Comparison report vs LAN baseline
 - [ ] Graceful degradation behavior documented
 - [ ] Results reviewed with team
-- [ ] PR created
 - [ ] Code simplified
+- [ ] PR created
 - [ ] PR reviewed
 - [ ] Merged to main
 

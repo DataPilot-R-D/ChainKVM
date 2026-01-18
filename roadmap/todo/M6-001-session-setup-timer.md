@@ -30,8 +30,8 @@ As a system architect, I want to measure session setup time so that I can valida
 - [ ] Timestamps exported to measurement data store
 - [ ] Phase breakdown visualization
 - [ ] Tests passing
-- [ ] PR created
 - [ ] Code simplified
+- [ ] PR created
 - [ ] PR reviewed
 - [ ] Merged to main
 

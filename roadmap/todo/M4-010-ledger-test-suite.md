@@ -32,8 +32,8 @@ As a QA engineer, I want comprehensive tests for the ledger integration so that 
 - [ ] Failure scenario tests
 - [ ] CI integration
 - [ ] Tests passing
-- [ ] PR created
 - [ ] Code simplified
+- [ ] PR created
 - [ ] PR reviewed
 - [ ] Merged to main
 

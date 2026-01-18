@@ -34,8 +34,8 @@ As an operator or evaluator, I want a comprehensive measurement guide so that I 
 - [ ] Screenshots/diagrams included
 - [ ] Technical review complete
 - [ ] Guide published to docs
-- [ ] PR created
 - [ ] Code simplified
+- [ ] PR created
 - [ ] PR reviewed
 - [ ] Merged to main
 

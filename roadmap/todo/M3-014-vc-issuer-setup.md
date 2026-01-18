@@ -33,8 +33,8 @@ As a system administrator, I want a VC Issuer (POC Certificate Authority) so tha
 - [ ] CLI or API for credential provisioning
 - [ ] Test credentials generated for POC
 - [ ] Tests passing
-- [ ] PR created
 - [ ] Code simplified
+- [ ] PR created
 - [ ] PR reviewed
 - [ ] Merged to main
 

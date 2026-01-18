@@ -30,8 +30,8 @@ As a developer, I want an offline test harness so that I can develop and test Ro
 - [ ] Scriptable test scenarios
 - [ ] Documentation for harness usage
 - [ ] Tests passing
-- [ ] PR created
 - [ ] Code simplified
+- [ ] PR created
 - [ ] PR reviewed
 - [ ] Merged to main
 

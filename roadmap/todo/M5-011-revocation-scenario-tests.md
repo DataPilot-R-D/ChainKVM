@@ -32,8 +32,8 @@ As a QA engineer, I want comprehensive revocation tests so that I can verify all
 - [ ] Concurrent revocation test
 - [ ] CI integration
 - [ ] Tests passing
-- [ ] PR created
 - [ ] Code simplified
+- [ ] PR created
 - [ ] PR reviewed
 - [ ] Merged to main
 

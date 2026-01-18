@@ -31,8 +31,8 @@ As a system architect, I want to aggregate raw metrics into statistical summarie
 - [ ] Time-windowed aggregation
 - [ ] Memory-efficient implementation
 - [ ] Tests passing
-- [ ] PR created
 - [ ] Code simplified
+- [ ] PR created
 - [ ] PR reviewed
 - [ ] Merged to main
 

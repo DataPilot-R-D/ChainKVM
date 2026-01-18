@@ -31,8 +31,8 @@ As an operator, I want clear notification when my session is revoked so that I u
 - [ ] Notification styling/UX
 - [ ] Unit tests for notification
 - [ ] Tests passing
-- [ ] PR created
 - [ ] Code simplified
+- [ ] PR created
 - [ ] PR reviewed
 - [ ] Merged to main
 

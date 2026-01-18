@@ -32,8 +32,8 @@ As a system administrator, I want a Hyperledger Fabric test network so that the 
 - [ ] Network monitoring setup
 - [ ] Documentation for developers
 - [ ] Tests passing
-- [ ] PR created
 - [ ] Code simplified
+- [ ] PR created
 - [ ] PR reviewed
 - [ ] Merged to main
 

@@ -29,8 +29,8 @@ As a Robot Agent, I want to validate capability tokens so that only authorized c
 - [ ] Validation failure logging
 - [ ] Unit tests for validation
 - [ ] Tests passing
-- [ ] PR created
 - [ ] Code simplified
+- [ ] PR created
 - [ ] PR reviewed
 - [ ] Merged to main
 

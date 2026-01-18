@@ -35,8 +35,8 @@ As a project stakeholder, I want formal validation that the POC meets all NFR pe
 - [ ] Gap analysis for any failures
 - [ ] Mitigation recommendations if needed
 - [ ] Sign-off from project stakeholders
-- [ ] PR created
 - [ ] Code simplified
+- [ ] PR created
 - [ ] PR reviewed
 - [ ] Merged to main
 

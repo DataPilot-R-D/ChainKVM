@@ -30,8 +30,8 @@ As a gateway operator, I want backpressure and circuit breaker mechanisms so tha
 - [ ] Alert generation
 - [ ] Unit tests for patterns
 - [ ] Tests passing
-- [ ] PR created
 - [ ] Code simplified
+- [ ] PR created
 - [ ] PR reviewed
 - [ ] Merged to main
 

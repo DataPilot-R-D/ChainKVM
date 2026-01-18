@@ -32,8 +32,8 @@ As a system component, I need a signaling service so that WebRTC peers can excha
 - [ ] Connection cleanup
 - [ ] Unit tests for signaling
 - [ ] Tests passing
-- [ ] PR created
 - [ ] Code simplified
+- [ ] PR created
 - [ ] PR reviewed
 - [ ] Merged to main
 

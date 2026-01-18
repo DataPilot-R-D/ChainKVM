@@ -30,8 +30,8 @@ As a system tester, I want to measure revocation propagation time so that I can 
 - [ ] Measurement report generation
 - [ ] Unit tests for measurement
 - [ ] Tests passing
-- [ ] PR created
 - [ ] Code simplified
+- [ ] PR created
 - [ ] PR reviewed
 - [ ] Merged to main
 

@@ -30,8 +30,8 @@ As a developer, I want a well-defined event schema so that audit events are cons
 - [ ] Schema validation library
 - [ ] Schema documentation
 - [ ] Tests passing
-- [ ] PR created
 - [ ] Code simplified
+- [ ] PR created
 - [ ] PR reviewed
 - [ ] Merged to main
 

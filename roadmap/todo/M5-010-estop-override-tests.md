@@ -30,8 +30,8 @@ As a safety engineer, I want comprehensive E-Stop tests so that I can verify the
 - [ ] Hardware E-Stop test (if applicable)
 - [ ] CI integration
 - [ ] Tests passing
-- [ ] PR created
 - [ ] Code simplified
+- [ ] PR created
 - [ ] PR reviewed
 - [ ] Merged to main
 

@@ -30,8 +30,8 @@ As a Robot Agent, I want to detect control channel loss so that I can enter a sa
 - [ ] Reconnection handling
 - [ ] Unit tests for detection
 - [ ] Tests passing
-- [ ] PR created
 - [ ] Code simplified
+- [ ] PR created
 - [ ] PR reviewed
 - [ ] Merged to main
 

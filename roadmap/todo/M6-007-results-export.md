@@ -32,8 +32,8 @@ As an operator, I want to export measurement results in standard formats (JSON, 
 - [ ] Metadata inclusion
 - [ ] File naming convention documented
 - [ ] Tests passing
-- [ ] PR created
 - [ ] Code simplified
+- [ ] PR created
 - [ ] PR reviewed
 - [ ] Merged to main
 

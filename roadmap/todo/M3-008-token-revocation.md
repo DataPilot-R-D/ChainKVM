@@ -29,8 +29,8 @@ As a security administrator, I want to revoke tokens immediately so that comprom
 - [ ] Revocation audit logging
 - [ ] Unit tests for revocation
 - [ ] Tests passing
-- [ ] PR created
 - [ ] Code simplified
+- [ ] PR created
 - [ ] PR reviewed
 - [ ] Merged to main
 

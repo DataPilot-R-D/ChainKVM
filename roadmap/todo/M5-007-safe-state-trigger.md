@@ -30,8 +30,8 @@ As a Robot Agent, I want to transition to a safe state reliably when triggered s
 - [ ] Recovery procedure
 - [ ] Unit tests for all triggers
 - [ ] Tests passing
-- [ ] PR created
 - [ ] Code simplified
+- [ ] PR created
 - [ ] PR reviewed
 - [ ] Merged to main
 

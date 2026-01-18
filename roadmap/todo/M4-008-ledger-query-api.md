@@ -31,8 +31,8 @@ As a compliance officer, I want to query the audit ledger so that I can review h
 - [ ] API documentation
 - [ ] Unit tests for queries
 - [ ] Tests passing
-- [ ] PR created
 - [ ] Code simplified
+- [ ] PR created
 - [ ] PR reviewed
 - [ ] Merged to main
 

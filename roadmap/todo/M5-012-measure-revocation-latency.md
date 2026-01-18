@@ -31,8 +31,8 @@ As a system architect, I want revocation latency measurements so that I can veri
 - [ ] Report generation
 - [ ] Recommendations documented
 - [ ] Tests passing
-- [ ] PR created
 - [ ] Code simplified
+- [ ] PR created
 - [ ] PR reviewed
 - [ ] Merged to main
 

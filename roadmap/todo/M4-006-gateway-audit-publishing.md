@@ -30,8 +30,8 @@ As a compliance officer, I want all gateway actions logged to the ledger so that
 - [ ] Error handling and retry
 - [ ] Unit tests for publishing
 - [ ] Tests passing
-- [ ] PR created
 - [ ] Code simplified
+- [ ] PR created
 - [ ] PR reviewed
 - [ ] Merged to main
 

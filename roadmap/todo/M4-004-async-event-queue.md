@@ -30,8 +30,8 @@ As a gateway operator, I want audit events queued asynchronously so that ledger 
 - [ ] Dead letter handling
 - [ ] Unit tests for queue
 - [ ] Tests passing
-- [ ] PR created
 - [ ] Code simplified
+- [ ] PR created
 - [ ] PR reviewed
 - [ ] Merged to main
 

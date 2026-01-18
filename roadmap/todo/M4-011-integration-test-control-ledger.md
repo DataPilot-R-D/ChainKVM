@@ -32,8 +32,8 @@ As a QA engineer, I want integration tests covering control flow and audit loggi
 - [ ] End-to-end timing tests
 - [ ] CI integration
 - [ ] Tests passing
-- [ ] PR created
 - [ ] Code simplified
+- [ ] PR created
 - [ ] PR reviewed
 - [ ] Merged to main
 

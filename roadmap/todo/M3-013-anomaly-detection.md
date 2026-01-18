@@ -31,8 +31,8 @@ As a security administrator, I want the Gateway to detect anomalous behavior so 
 - [ ] False positive handling
 - [ ] Unit tests for detection
 - [ ] Tests passing
-- [ ] PR created
 - [ ] Code simplified
+- [ ] PR created
 - [ ] PR reviewed
 - [ ] Merged to main
 

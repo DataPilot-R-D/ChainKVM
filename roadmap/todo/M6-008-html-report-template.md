@@ -34,8 +34,8 @@ As a stakeholder, I want an HTML report template that presents measurement resul
 - [ ] Run comparison view
 - [ ] Self-contained (no external CDN)
 - [ ] Tests passing
-- [ ] PR created
 - [ ] Code simplified
+- [ ] PR created
 - [ ] PR reviewed
 - [ ] Merged to main
 

@@ -29,8 +29,8 @@ As a Robot Agent, I want to terminate sessions on revocation notification so tha
 - [ ] Termination audit event
 - [ ] Unit tests for termination
 - [ ] Tests passing
-- [ ] PR created
 - [ ] Code simplified
+- [ ] PR created
 - [ ] PR reviewed
 - [ ] Merged to main
 

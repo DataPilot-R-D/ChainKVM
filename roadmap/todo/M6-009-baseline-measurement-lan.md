@@ -36,8 +36,8 @@ As a system architect, I want to establish baseline performance measurements on 
 - [ ] Raw data exported and archived
 - [ ] Baseline report generated
 - [ ] Results reviewed with team
-- [ ] PR created
 - [ ] Code simplified
+- [ ] PR created
 - [ ] PR reviewed
 - [ ] Merged to main
 

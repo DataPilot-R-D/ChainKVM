@@ -30,8 +30,8 @@ As a compliance officer, I want audit events stored immutably on the ledger so t
 - [ ] Chaincode unit tests
 - [ ] Documentation
 - [ ] Tests passing
-- [ ] PR created
 - [ ] Code simplified
+- [ ] PR created
 - [ ] PR reviewed
 - [ ] Merged to main
 

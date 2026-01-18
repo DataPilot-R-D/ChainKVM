@@ -30,8 +30,8 @@ As a Robot Agent, I want to detect repeated invalid commands so that I can prote
 - [ ] Alert/audit generation
 - [ ] Unit tests for detection
 - [ ] Tests passing
-- [ ] PR created
 - [ ] Code simplified
+- [ ] PR created
 - [ ] PR reviewed
 - [ ] Merged to main
 

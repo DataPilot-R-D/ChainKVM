@@ -31,8 +31,8 @@ As a compliance officer, I want to verify that audit events haven't been tampere
 - [ ] Tampering detection alerts
 - [ ] Unit tests for verification
 - [ ] Tests passing
-- [ ] PR created
 - [ ] Code simplified
+- [ ] PR created
 - [ ] PR reviewed
 - [ ] Merged to main
 

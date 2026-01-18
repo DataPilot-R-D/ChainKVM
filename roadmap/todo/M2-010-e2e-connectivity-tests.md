@@ -32,8 +32,8 @@ As a QA engineer, I want automated end-to-end tests for connectivity so that reg
 - [ ] CI integration
 - [ ] Test documentation
 - [ ] Tests passing
-- [ ] PR created
 - [ ] Code simplified
+- [ ] PR created
 - [ ] PR reviewed
 - [ ] Merged to main
 

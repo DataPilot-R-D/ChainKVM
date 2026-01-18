@@ -29,8 +29,8 @@ As a system architect, I want verification that ledger operations don't impact c
 - [ ] Ledger slowdown impact test
 - [ ] Formal verification report
 - [ ] Tests passing
-- [ ] PR created
 - [ ] Code simplified
+- [ ] PR created
 - [ ] PR reviewed
 - [ ] Merged to main
 

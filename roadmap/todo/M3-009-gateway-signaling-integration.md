@@ -30,8 +30,8 @@ As a system integrator, I want the Gateway and Signaling service to work togethe
 - [ ] Integration tests
 - [ ] Error handling for auth failures
 - [ ] Tests passing
-- [ ] PR created
 - [ ] Code simplified
+- [ ] PR created
 - [ ] PR reviewed
 - [ ] Merged to main
 

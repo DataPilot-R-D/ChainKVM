@@ -28,8 +28,8 @@ As a security administrator, I want optional step-up authentication so that high
 - [ ] Bypass for development mode
 - [ ] Unit tests for TOTP
 - [ ] Tests passing
-- [ ] PR created
 - [ ] Code simplified
+- [ ] PR created
 - [ ] PR reviewed
 - [ ] Merged to main
 
