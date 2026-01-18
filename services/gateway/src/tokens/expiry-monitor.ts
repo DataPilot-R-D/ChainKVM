@@ -70,6 +70,13 @@ export function createExpiryMonitor(): ExpiryMonitor {
             onWarning(warning);
           }
         }
+
+        // Prune warned tokens no longer in registry to prevent memory leak
+        for (const jti of warnedTokens) {
+          if (!registry.get(jti)) {
+            warnedTokens.delete(jti);
+          }
+        }
       }, options.checkIntervalMs);
     },
 

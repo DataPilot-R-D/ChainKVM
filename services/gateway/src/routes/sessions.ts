@@ -6,17 +6,39 @@ import type {
   RefreshTokenResponse,
 } from '../types.js';
 import type { Config } from '../config.js';
-import type { TokenGenerator, TokenRegistry } from '../tokens/index.js';
+import type { TokenGenerator, TokenRegistry, TokenEntry } from '../tokens/index.js';
 
-// In-memory session store (stub)
 const sessions = new Map<string, SessionState>();
-
-// Module-level dependencies (set via setters)
 let tokenGenerator: TokenGenerator | null = null;
 let tokenRegistry: TokenRegistry | null = null;
 
 function generateId(): string {
   return `ses_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function registerToken(entry: Omit<TokenEntry, 'jti'> & { jti: string }): void {
+  tokenRegistry?.register(entry);
+}
+
+/** Extract jti from JWT token (decode without verification). */
+function extractJtiFromToken(token: string): string | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
+    return payload.jti ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Check if token is valid for the given session. */
+function isTokenValidForSession(token: string, sessionId: string): boolean {
+  if (!tokenRegistry) return true; // Skip validation if registry not configured
+  const jti = extractJtiFromToken(token);
+  if (!jti) return false;
+  const entry = tokenRegistry.get(jti);
+  return entry !== undefined && entry.sessionId === sessionId && tokenRegistry.isValid(jti);
 }
 
 /** Set the token generator. Call before registering routes. */
@@ -54,8 +76,7 @@ export async function sessionRoutes(app: FastifyInstance, config: Config): Promi
         ttlSeconds: config.sessionTtlSeconds,
       });
 
-      // Register token in registry for tracking
-      tokenRegistry?.register({
+      registerToken({
         jti: tokenResult.tokenId,
         sessionId,
         operatorDid: operator_did,
@@ -142,6 +163,8 @@ export async function sessionRoutes(app: FastifyInstance, config: Config): Promi
           .send({ error: 'missing_authorization', message: 'Authorization header required' });
       }
 
+      const bearerToken = authHeader.slice(7);
+
       const session = sessions.get(session_id);
       if (!session) {
         return reply.status(404).send({ error: 'session_not_found', message: 'Session not found' });
@@ -151,6 +174,13 @@ export async function sessionRoutes(app: FastifyInstance, config: Config): Promi
         return reply
           .status(403)
           .send({ error: 'session_not_active', message: 'Session is not active' });
+      }
+
+      // Validate token belongs to this session
+      if (!isTokenValidForSession(bearerToken, session_id)) {
+        return reply
+          .status(403)
+          .send({ error: 'invalid_token', message: 'Token is not valid for this session' });
       }
 
       if (!tokenGenerator) {
@@ -172,8 +202,7 @@ export async function sessionRoutes(app: FastifyInstance, config: Config): Promi
         ttlSeconds: config.sessionTtlSeconds,
       });
 
-      // Register new token
-      tokenRegistry?.register({
+      registerToken({
         jti: tokenResult.tokenId,
         sessionId: session_id,
         operatorDid: session.operator_did,

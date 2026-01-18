@@ -81,17 +81,11 @@ export function createTokenRegistry(): TokenRegistry {
     getExpiringSoon(thresholdMs: number): TokenEntry[] {
       const now = Date.now();
       const threshold = now + thresholdMs;
-      const result: TokenEntry[] = [];
 
-      for (const entry of tokens.values()) {
+      return [...tokens.values()].filter((entry) => {
         const expiresAtMs = entry.expiresAt.getTime();
-        // Not yet expired, but will expire within threshold
-        if (expiresAtMs > now && expiresAtMs <= threshold) {
-          result.push(entry);
-        }
-      }
-
-      return result;
+        return expiresAtMs > now && expiresAtMs <= threshold;
+      });
     },
 
     cleanup(): number {
@@ -122,24 +116,13 @@ export function createTokenRegistry(): TokenRegistry {
     },
 
     getBySession(sessionId: string): TokenEntry[] {
-      const result: TokenEntry[] = [];
-      for (const entry of tokens.values()) {
-        if (entry.sessionId === sessionId) {
-          result.push(entry);
-        }
-      }
-      return result;
+      return [...tokens.values()].filter((entry) => entry.sessionId === sessionId);
     },
 
     revokeBySession(sessionId: string): number {
-      let count = 0;
-      for (const [jti, entry] of tokens.entries()) {
-        if (entry.sessionId === sessionId) {
-          tokens.delete(jti);
-          count++;
-        }
-      }
-      return count;
+      const sessionTokens = this.getBySession(sessionId);
+      sessionTokens.forEach((entry) => tokens.delete(entry.jti));
+      return sessionTokens.length;
     },
 
     size(): number {

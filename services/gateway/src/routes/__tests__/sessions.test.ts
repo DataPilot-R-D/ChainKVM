@@ -451,6 +451,46 @@ describe('POST /v1/sessions/:session_id/refresh', () => {
     expect(body.error).toBe('session_not_active');
   });
 
+  it('should return 403 for token from different session', async () => {
+    // Create two sessions
+    const session1Response = await app.inject({
+      method: 'POST',
+      url: '/v1/sessions',
+      payload: {
+        robot_id: 'robot-001',
+        operator_did: 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK',
+        vc_or_vp: 'stub-vc-token',
+        requested_scope: ['teleop:view'],
+      },
+    });
+    const session1: CreateSessionResponse = JSON.parse(session1Response.body);
+
+    const session2Response = await app.inject({
+      method: 'POST',
+      url: '/v1/sessions',
+      payload: {
+        robot_id: 'robot-002',
+        operator_did: 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK',
+        vc_or_vp: 'stub-vc-token',
+        requested_scope: ['teleop:view'],
+      },
+    });
+    const session2: CreateSessionResponse = JSON.parse(session2Response.body);
+
+    // Try to refresh session1 with session2's token
+    const response = await app.inject({
+      method: 'POST',
+      url: `/v1/sessions/${session1.session_id}/refresh`,
+      headers: {
+        authorization: `Bearer ${session2.capability_token}`,
+      },
+    });
+
+    expect(response.statusCode).toBe(403);
+    const body = JSON.parse(response.body);
+    expect(body.error).toBe('invalid_token');
+  });
+
   it('should provide valid expiry time with new token', async () => {
     const beforeCreate = Date.now();
 
