@@ -1,0 +1,29 @@
+# Minimal Fabric network for POC development
+# Full network setup will be added in M4-001
+
+version: '3.7'
+
+networks:
+  chainkvm:
+    name: chainkvm_network
+
+volumes:
+  orderer.chainkvm.local:
+  peer0.org1.chainkvm.local:
+
+services:
+  # Placeholder services - full config in M4-001
+  # orderer.chainkvm.local:
+  # peer0.org1.chainkvm.local:
+  # ca.org1.chainkvm.local:
+
+  # For now, just a placeholder to validate docker-compose syntax
+  fabric-tools:
+    image: hyperledger/fabric-tools:2.5
+    container_name: fabric-tools
+    tty: true
+    stdin_open: true
+    networks:
+      - chainkvm
+    volumes:
+      - ./config:/etc/hyperledger/fabric
