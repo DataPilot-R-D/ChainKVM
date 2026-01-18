@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import type { SocketStream } from '@fastify/websocket';
 import type { WebSocket } from 'ws';
 import type { SignalingMessage, ErrorMessage } from '../types.js';
+import type { TokenRegistry } from '../tokens/index.js';
 
 // Room-based signaling: session_id -> connected peers
 interface Peer {
@@ -11,6 +12,27 @@ interface Peer {
 }
 
 const rooms = new Map<string, Map<string, Peer>>();
+let tokenRegistry: TokenRegistry | null = null;
+
+/** Set the token registry for validation. */
+export function setTokenRegistry(registry: TokenRegistry): void {
+  tokenRegistry = registry;
+}
+
+/** Decode JWT payload without verification. Returns { jti, sid } or null. */
+function decodeTokenClaims(token: string): { jti: string; sid: string } | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
+    if (typeof payload.jti !== 'string' || typeof payload.sid !== 'string') {
+      return null;
+    }
+    return { jti: payload.jti, sid: payload.sid };
+  } catch {
+    return null;
+  }
+}
 
 function getPeerId(): string {
   return `peer_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
@@ -56,8 +78,31 @@ export async function signalingRoutes(app: FastifyInstance): Promise<void> {
 
       switch (msg.type) {
         case 'join': {
-          // TODO: Validate capability token from Authorization header (M3-010)
-          const { session_id, role } = msg;
+          const { session_id, role, token } = msg;
+
+          // Validate token presence and format
+          if (!token) {
+            sendError(socket, 'missing_token', 'Token is required');
+            return;
+          }
+
+          const claims = decodeTokenClaims(token);
+          if (!claims) {
+            sendError(socket, 'invalid_token', 'Invalid token format');
+            return;
+          }
+
+          // Validate session matches token
+          if (claims.sid !== session_id) {
+            sendError(socket, 'session_mismatch', 'Token session does not match');
+            return;
+          }
+
+          // Validate token in registry (if configured)
+          if (tokenRegistry && !tokenRegistry.isValid(claims.jti)) {
+            sendError(socket, 'token_invalid', 'Token is not valid or expired');
+            return;
+          }
 
           // Leave previous room if any
           if (currentSessionId) {

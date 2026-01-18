@@ -2,13 +2,42 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Fastify, { FastifyInstance } from 'fastify';
 import fastifyWebsocket from '@fastify/websocket';
 import WebSocket from 'ws';
-import { signalingRoutes, notifyRevocation } from '../signaling.js';
+import { signalingRoutes, notifyRevocation, setTokenRegistry } from '../signaling.js';
+import { createTokenRegistry, TokenRegistry } from '../../tokens/index.js';
+
+/** Create a test JWT token with given claims. */
+function createTestToken(sessionId: string, jti = `tok_${Date.now()}`): string {
+  const header = Buffer.from(JSON.stringify({ alg: 'EdDSA', typ: 'JWT' })).toString('base64url');
+  const payload = Buffer.from(JSON.stringify({
+    jti,
+    sid: sessionId,
+    sub: 'did:key:test',
+    aud: 'robot-1',
+    exp: Math.floor(Date.now() / 1000) + 3600,
+  })).toString('base64url');
+  const signature = Buffer.from('test-signature').toString('base64url');
+  return `${header}.${payload}.${signature}`;
+}
 
 describe('signalingRoutes', () => {
   let app: FastifyInstance;
   let serverAddress: string;
+  let registry: TokenRegistry;
+
+  /** Register a token in the registry for testing. */
+  function registerToken(sessionId: string, jti: string): void {
+    registry.register({
+      jti,
+      sessionId,
+      operatorDid: 'did:key:test',
+      robotId: 'robot-1',
+      expiresAt: new Date(Date.now() + 3600000),
+    });
+  }
 
   beforeEach(async () => {
+    registry = createTokenRegistry();
+    setTokenRegistry(registry);
     app = Fastify({ logger: false });
     await app.register(fastifyWebsocket);
     await app.register(signalingRoutes);
@@ -69,11 +98,15 @@ describe('signalingRoutes', () => {
       const ws = createClient();
       await waitForOpen(ws);
 
+      const jti = 'tok_test1';
+      registerToken('test-session-1', jti);
+
       const messagePromise = waitForMessage(ws);
       ws.send(JSON.stringify({
         type: 'join',
         session_id: 'test-session-1',
         role: 'operator',
+        token: createTestToken('test-session-1', jti),
       }));
 
       const response = await messagePromise;
@@ -91,11 +124,15 @@ describe('signalingRoutes', () => {
       const ws2 = createClient();
       await Promise.all([waitForOpen(ws1), waitForOpen(ws2)]);
 
+      const jti = 'tok_test2';
+      registerToken('test-session-2', jti);
+
       const msg1 = waitForMessage(ws1);
       ws1.send(JSON.stringify({
         type: 'join',
         session_id: 'test-session-2',
         role: 'operator',
+        token: createTestToken('test-session-2', jti),
       }));
       await msg1;
 
@@ -105,6 +142,7 @@ describe('signalingRoutes', () => {
         type: 'join',
         session_id: 'test-session-2',
         role: 'robot',
+        token: createTestToken('test-session-2', jti),
       }));
       await msg2;
 
@@ -126,11 +164,16 @@ describe('signalingRoutes', () => {
       const robot = createClient();
       await Promise.all([waitForOpen(operator), waitForOpen(robot)]);
 
+      const jti = 'tok_test3';
+      registerToken('test-session-3', jti);
+      const token = createTestToken('test-session-3', jti);
+
       const opJoin = waitForMessage(operator);
       operator.send(JSON.stringify({
         type: 'join',
         session_id: 'test-session-3',
         role: 'operator',
+        token,
       }));
       await opJoin;
 
@@ -140,6 +183,7 @@ describe('signalingRoutes', () => {
         type: 'join',
         session_id: 'test-session-3',
         role: 'robot',
+        token,
       }));
       await Promise.all([opNotify, robJoin]);
 
@@ -166,11 +210,16 @@ describe('signalingRoutes', () => {
       const robot = createClient();
       await Promise.all([waitForOpen(operator), waitForOpen(robot)]);
 
+      const jti = 'tok_test4';
+      registerToken('test-session-4', jti);
+      const token = createTestToken('test-session-4', jti);
+
       const opJoin = waitForMessage(operator);
       operator.send(JSON.stringify({
         type: 'join',
         session_id: 'test-session-4',
         role: 'operator',
+        token,
       }));
       await opJoin;
 
@@ -180,6 +229,7 @@ describe('signalingRoutes', () => {
         type: 'join',
         session_id: 'test-session-4',
         role: 'robot',
+        token,
       }));
       await Promise.all([opNotify, robJoin]);
 
@@ -206,11 +256,16 @@ describe('signalingRoutes', () => {
       const robot = createClient();
       await Promise.all([waitForOpen(operator), waitForOpen(robot)]);
 
+      const jti = 'tok_test5';
+      registerToken('test-session-5', jti);
+      const token = createTestToken('test-session-5', jti);
+
       const opJoin = waitForMessage(operator);
       operator.send(JSON.stringify({
         type: 'join',
         session_id: 'test-session-5',
         role: 'operator',
+        token,
       }));
       await opJoin;
 
@@ -220,6 +275,7 @@ describe('signalingRoutes', () => {
         type: 'join',
         session_id: 'test-session-5',
         role: 'robot',
+        token,
       }));
       await Promise.all([opNotify, robJoin]);
 
@@ -269,11 +325,16 @@ describe('signalingRoutes', () => {
       const robot = createClient();
       await Promise.all([waitForOpen(operator), waitForOpen(robot)]);
 
+      const jti = 'tok_test6';
+      registerToken('test-session-6', jti);
+      const token = createTestToken('test-session-6', jti);
+
       const opJoin = waitForMessage(operator);
       operator.send(JSON.stringify({
         type: 'join',
         session_id: 'test-session-6',
         role: 'operator',
+        token,
       }));
       await opJoin;
 
@@ -283,6 +344,7 @@ describe('signalingRoutes', () => {
         type: 'join',
         session_id: 'test-session-6',
         role: 'robot',
+        token,
       }));
       await Promise.all([opNotify, robJoin]);
 
@@ -346,11 +408,16 @@ describe('signalingRoutes', () => {
       const robot = createClient();
       await Promise.all([waitForOpen(operator), waitForOpen(robot)]);
 
+      const jti = 'tok_test7';
+      registerToken('test-session-7', jti);
+      const token = createTestToken('test-session-7', jti);
+
       const opJoin = waitForMessage(operator);
       operator.send(JSON.stringify({
         type: 'join',
         session_id: 'test-session-7',
         role: 'operator',
+        token,
       }));
       await opJoin;
 
@@ -360,6 +427,7 @@ describe('signalingRoutes', () => {
         type: 'join',
         session_id: 'test-session-7',
         role: 'robot',
+        token,
       }));
       await Promise.all([opNotify, robJoin]);
 
@@ -376,13 +444,136 @@ describe('signalingRoutes', () => {
       operator.close();
     });
   });
+
+  describe('authentication', () => {
+    it('should reject join without token', async () => {
+      const ws = createClient();
+      await waitForOpen(ws);
+
+      const messagePromise = waitForMessage(ws);
+      ws.send(JSON.stringify({
+        type: 'join',
+        session_id: 'test-session',
+        role: 'operator',
+      }));
+
+      const response = await messagePromise;
+      expect(response).toEqual({
+        type: 'error',
+        code: 'missing_token',
+        message: 'Token is required',
+      });
+
+      ws.close();
+    });
+
+    it('should reject join with invalid token format', async () => {
+      const ws = createClient();
+      await waitForOpen(ws);
+
+      const messagePromise = waitForMessage(ws);
+      ws.send(JSON.stringify({
+        type: 'join',
+        session_id: 'test-session',
+        role: 'operator',
+        token: 'not-a-jwt',
+      }));
+
+      const response = await messagePromise;
+      expect(response).toEqual({
+        type: 'error',
+        code: 'invalid_token',
+        message: 'Invalid token format',
+      });
+
+      ws.close();
+    });
+
+    it('should reject join when token session does not match', async () => {
+      const ws = createClient();
+      await waitForOpen(ws);
+
+      const messagePromise = waitForMessage(ws);
+      ws.send(JSON.stringify({
+        type: 'join',
+        session_id: 'test-session-A',
+        role: 'operator',
+        token: createTestToken('test-session-B'),
+      }));
+
+      const response = await messagePromise;
+      expect(response).toEqual({
+        type: 'error',
+        code: 'session_mismatch',
+        message: 'Token session does not match',
+      });
+
+      ws.close();
+    });
+
+    it('should reject join when token is not registered', async () => {
+      const ws = createClient();
+      await waitForOpen(ws);
+
+      const messagePromise = waitForMessage(ws);
+      ws.send(JSON.stringify({
+        type: 'join',
+        session_id: 'test-session-unregistered',
+        role: 'operator',
+        token: createTestToken('test-session-unregistered', 'tok_unregistered'),
+      }));
+
+      const response = await messagePromise;
+      expect(response).toEqual({
+        type: 'error',
+        code: 'token_invalid',
+        message: 'Token is not valid or expired',
+      });
+
+      ws.close();
+    });
+
+    it('should reject join when token is expired', async () => {
+      const ws = createClient();
+      await waitForOpen(ws);
+
+      const jti = 'tok_expired';
+      registry.register({
+        jti,
+        sessionId: 'test-session-expired',
+        operatorDid: 'did:key:test',
+        robotId: 'robot-1',
+        expiresAt: new Date(Date.now() - 1000), // expired 1 second ago
+      });
+
+      const messagePromise = waitForMessage(ws);
+      ws.send(JSON.stringify({
+        type: 'join',
+        session_id: 'test-session-expired',
+        role: 'operator',
+        token: createTestToken('test-session-expired', jti),
+      }));
+
+      const response = await messagePromise;
+      expect(response).toEqual({
+        type: 'error',
+        code: 'token_invalid',
+        message: 'Token is not valid or expired',
+      });
+
+      ws.close();
+    });
+  });
 });
 
 describe('notifyRevocation', () => {
   let app: FastifyInstance;
   let serverAddress: string;
+  let registry: TokenRegistry;
 
   beforeEach(async () => {
+    registry = createTokenRegistry();
+    setTokenRegistry(registry);
     app = Fastify({ logger: false });
     await app.register(fastifyWebsocket);
     await app.register(signalingRoutes);
@@ -401,6 +592,26 @@ describe('notifyRevocation', () => {
     const ws = new WebSocket(`${serverAddress}/v1/signal`);
     await new Promise<void>((resolve) => ws.once('open', resolve));
 
+    const jti = 'tok_revoke_test';
+    registry.register({
+      jti,
+      sessionId: 'revoke-test-session',
+      operatorDid: 'did:key:test',
+      robotId: 'robot-1',
+      expiresAt: new Date(Date.now() + 3600000),
+    });
+
+    const header = Buffer.from(JSON.stringify({ alg: 'EdDSA', typ: 'JWT' })).toString('base64url');
+    const payload = Buffer.from(JSON.stringify({
+      jti,
+      sid: 'revoke-test-session',
+      sub: 'did:key:test',
+      aud: 'robot-1',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    })).toString('base64url');
+    const signature = Buffer.from('test-signature').toString('base64url');
+    const token = `${header}.${payload}.${signature}`;
+
     const joinMsg = new Promise<unknown>((resolve) => {
       ws.once('message', (data) => resolve(JSON.parse(data.toString())));
     });
@@ -408,6 +619,7 @@ describe('notifyRevocation', () => {
       type: 'join',
       session_id: 'revoke-test-session',
       role: 'operator',
+      token,
     }));
     await joinMsg;
 
