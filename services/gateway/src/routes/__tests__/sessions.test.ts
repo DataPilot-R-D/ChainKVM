@@ -26,6 +26,8 @@ const testConfig: Config = {
   maxControlRateHz: 20,
   maxVideoBitrateKbps: 4000,
   adminApiKey: 'test-admin-key',
+  maxRevocationCacheSize: 100000,
+  revocationStorePath: 'data/revocations.json',
 };
 
 let tokenRegistry: TokenRegistry;

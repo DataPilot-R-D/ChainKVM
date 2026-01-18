@@ -2,7 +2,12 @@
  * Tests for TokenRegistry - active token tracking with expiry cleanup.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { promises as fs } from 'fs';
+import path from 'path';
+import os from 'os';
 import { createTokenRegistry, type TokenRegistry, type TokenEntry } from '../token-registry.js';
+import { createRevocationCache, type RevocationCache } from '../revocation-cache.js';
+import { createRevocationStore, type RevocationStore } from '../revocation-store.js';
 
 describe('TokenRegistry', () => {
   let registry: TokenRegistry;
@@ -307,6 +312,137 @@ describe('TokenRegistry', () => {
     it('should return empty array for unknown operator', () => {
       const sessionIds = registry.revokeByOperator('did:key:z6MkUnknown');
       expect(sessionIds).toHaveLength(0);
+    });
+  });
+
+  describe('revocation cache integration', () => {
+    let revocationCache: RevocationCache;
+
+    beforeEach(() => {
+      revocationCache = createRevocationCache();
+      registry.setRevocationCache(revocationCache);
+    });
+
+    it('should add revoked tokens to cache', () => {
+      const entry = makeEntry({ jti: 'tok_revoke' });
+      registry.register(entry);
+      registry.revoke('tok_revoke', 'test reason');
+
+      expect(revocationCache.isRevoked('tok_revoke')).toBe(true);
+    });
+
+    it('should check revocation cache in isValid', () => {
+      revocationCache.add('tok_cached', new Date(Date.now() + 60000), 'cached');
+
+      expect(registry.isValid('tok_cached')).toBe(false);
+    });
+
+    it('should reject tokens that exist in revocation cache but not registry', () => {
+      revocationCache.add('tok_only_cached', new Date(Date.now() + 60000));
+      expect(registry.isValid('tok_only_cached')).toBe(false);
+    });
+
+    it('should add session tokens to cache on revokeBySession', () => {
+      const entry1 = makeEntry({ jti: 'tok_1', sessionId: 'ses_target' });
+      const entry2 = makeEntry({ jti: 'tok_2', sessionId: 'ses_target' });
+      registry.register(entry1);
+      registry.register(entry2);
+
+      registry.revokeBySession('ses_target', 'session revoked');
+
+      expect(revocationCache.isRevoked('tok_1')).toBe(true);
+      expect(revocationCache.isRevoked('tok_2')).toBe(true);
+    });
+
+    it('should add operator tokens to cache on revokeByOperator', () => {
+      const entry1 = makeEntry({ jti: 'tok_1', operatorDid: 'did:key:z6MkOp1' });
+      const entry2 = makeEntry({ jti: 'tok_2', operatorDid: 'did:key:z6MkOp1' });
+      registry.register(entry1);
+      registry.register(entry2);
+
+      registry.revokeByOperator('did:key:z6MkOp1', 'operator revoked');
+
+      expect(revocationCache.isRevoked('tok_1')).toBe(true);
+      expect(revocationCache.isRevoked('tok_2')).toBe(true);
+    });
+
+    it('should cleanup revocation cache during registry cleanup', () => {
+      const now = Date.now();
+      revocationCache.add('tok_expired', new Date(now - 1000));
+      revocationCache.add('tok_valid', new Date(now + 60000));
+
+      registry.cleanup();
+
+      expect(revocationCache.size()).toBe(1);
+    });
+
+    it('should return revocation metrics', () => {
+      revocationCache.add('tok_1', new Date(Date.now() + 60000));
+      revocationCache.isRevoked('tok_1'); // hit
+      revocationCache.isRevoked('tok_unknown'); // miss
+
+      const metrics = registry.getRevocationMetrics();
+      expect(metrics).not.toBeNull();
+      expect(metrics?.hits).toBe(1);
+      expect(metrics?.misses).toBe(1);
+    });
+
+    it('should return null metrics when no cache configured', () => {
+      const plainRegistry = createTokenRegistry();
+      expect(plainRegistry.getRevocationMetrics()).toBeNull();
+    });
+  });
+
+  describe('revocation persistence integration', () => {
+    let revocationStore: RevocationStore;
+    let persistCache: RevocationCache;
+    let tempDir: string;
+
+    beforeEach(async () => {
+      // Use real timers for file I/O tests
+      vi.useRealTimers();
+      tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'token-registry-persist-'));
+      const storePath = path.join(tempDir, 'revocations.json');
+      revocationStore = createRevocationStore(storePath);
+      persistCache = createRevocationCache();
+      registry = createTokenRegistry(); // Fresh registry for persistence tests
+      registry.setRevocationCache(persistCache);
+      registry.setRevocationStore(revocationStore);
+    });
+
+    afterEach(async () => {
+      await fs.rm(tempDir, { recursive: true, force: true });
+      vi.useFakeTimers(); // Restore fake timers for other tests
+    });
+
+    it('should persist revocations and survive simulated restart', async () => {
+      const entry = makeEntry({ jti: 'tok_persist' });
+      registry.register(entry);
+      registry.revoke('tok_persist', 'test reason');
+
+      // Wait for async append to complete
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      // Simulate restart: create new registry, load from store
+      const newRegistry = createTokenRegistry();
+      const newCache = createRevocationCache();
+      const loaded = await revocationStore.load();
+      newCache.loadFromStore(loaded);
+      newRegistry.setRevocationCache(newCache);
+
+      // Revoked token should still be invalid after "restart"
+      expect(newRegistry.isValid('tok_persist')).toBe(false);
+    });
+
+    it('should persist revocation reason', async () => {
+      const entry = makeEntry({ jti: 'tok_reason' });
+      registry.register(entry);
+      registry.revoke('tok_reason', 'security violation');
+
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      const loaded = await revocationStore.load();
+      expect(loaded[0].reason).toBe('security violation');
     });
   });
 });
