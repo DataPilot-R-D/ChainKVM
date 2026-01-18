@@ -20,19 +20,27 @@ As a security administrator, I want to revoke tokens immediately so that comprom
 
 ## Definition of Done
 
-- [ ] Feature branch created (`feature/M3-008-token-revocation`)
-- [ ] Revocation API endpoint
-- [ ] Revocation list storage
-- [ ] Revocation check in validation
-- [ ] Revocation event publishing
-- [ ] Bulk revocation support
-- [ ] Revocation audit logging
-- [ ] Unit tests for revocation
-- [ ] Tests passing
-- [ ] Code simplified
-- [ ] PR created
-- [ ] PR reviewed
-- [ ] Merged to main
+### Phase 1: Implementation
+- [x] Feature branch created (`feature/M3-008-token-revocation`)
+- [x] Revocation API endpoint
+- [x] Revocation list storage
+- [x] Revocation check in validation
+- [x] Revocation event publishing (stub for M4)
+- [x] Bulk revocation support
+- [x] Revocation audit logging (stub for M4)
+- [x] Unit tests for revocation
+- [x] Tests passing
+- [x] Code simplified
+- [x] PR created
+
+### Phase 2: Review (⛔ BLOCKING - wait for user)
+- [ ] PR reviewed by user
+- [ ] User approves
+
+### Phase 3: Completion (only after user approval)
+- [ ] PR merged to main
+- [ ] Task file moved to `roadmap/done/`
+- [ ] Feature branch deleted
 
 ## Acceptance Tests (UAT)
 

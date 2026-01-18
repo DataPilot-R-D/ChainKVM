@@ -21,10 +21,30 @@ When starting work on a task:
 mv roadmap/todo/M1-001-robot-agent-architecture.md roadmap/in_progress/
 ```
 
-When completing a task:
+When completing a task (⛔ ONLY after PR is merged):
 ```bash
 mv roadmap/in_progress/M1-001-robot-agent-architecture.md roadmap/done/
 ```
+
+### Task Completion Workflow (3 Phases)
+
+**Phase 1: Implementation**
+- Create feature branch
+- Move task to `in_progress/`
+- Implement with TDD
+- Create PR
+
+**Phase 2: Review (⛔ BLOCKING)**
+- Wait for user/reviewer to approve PR
+- DO NOT move task to `done/` yet
+- DO NOT claim task is "complete"
+
+**Phase 3: Completion (only after approval)**
+- Merge PR to main
+- Move task to `done/`
+- Delete feature branch
+
+**A task is NOT complete until Phase 3 is done.**
 
 ### Task Naming Convention
 
