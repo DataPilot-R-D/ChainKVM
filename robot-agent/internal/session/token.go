@@ -18,6 +18,7 @@ var (
 
 // TokenClaims holds validated JWT claims.
 type TokenClaims struct {
+	JTI       string
 	SessionID string
 	Subject   string
 	Scope     []string
@@ -91,6 +92,7 @@ func (v *TokenValidator) extractClaims(claims jwt.MapClaims, expectedSessionID s
 		return nil, ErrSessionMismatch
 	}
 
+	jti, _ := claims["jti"].(string)
 	sub, _ := claims["sub"].(string)
 	nonce, _ := claims["nonce"].(string)
 
@@ -100,6 +102,7 @@ func (v *TokenValidator) extractClaims(claims jwt.MapClaims, expectedSessionID s
 	}
 
 	return &TokenClaims{
+		JTI:       jti,
 		SessionID: sid,
 		Subject:   sub,
 		Scope:     v.extractScope(claims),

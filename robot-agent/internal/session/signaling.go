@@ -43,7 +43,7 @@ var (
 
 // SignalingHandler handles incoming signaling messages.
 type SignalingHandler interface {
-	OnOffer(sessionID string, sdp []byte)
+	OnOffer(sessionID, token string, sdp []byte)
 	OnAnswer(sessionID string, sdp []byte)
 	OnICE(sessionID string, candidate []byte)
 	OnBye(sessionID string)
@@ -209,7 +209,7 @@ func (c *SignalingClient) handleMessage(msg SignalMessage) {
 
 	switch msg.Type {
 	case SignalOffer:
-		handler.OnOffer(msg.SessionID, msg.Payload)
+		handler.OnOffer(msg.SessionID, msg.Token, msg.Payload)
 	case SignalAnswer:
 		handler.OnAnswer(msg.SessionID, msg.Payload)
 	case SignalICE:

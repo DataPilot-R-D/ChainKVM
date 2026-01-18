@@ -127,8 +127,17 @@ func (a *agent) initTokenValidator() *session.TokenValidator {
 }
 
 // OnOffer handles incoming SDP offer from console.
-func (a *agent) OnOffer(sessionID string, sdpData []byte) {
+func (a *agent) OnOffer(sessionID, token string, sdpData []byte) {
 	a.logger.Info("received offer", zap.String("session_id", sessionID))
+
+	// Validate capability token before establishing connection
+	info, err := a.sessionMgr.ValidateToken(sessionID, token)
+	if err != nil {
+		a.logger.Error("token validation failed",
+			zap.String("session_id", sessionID),
+			zap.Error(err))
+		return
+	}
 
 	if err := a.transport.CreatePeerConnection(); err != nil {
 		a.logger.Error("failed to create peer connection", zap.Error(err))
@@ -143,13 +152,12 @@ func (a *agent) OnOffer(sessionID string, sdpData []byte) {
 
 	a.transport.SetDataHandler(a.onDataMessage)
 
+	// Store validated session info for activation on connection
+	validatedInfo := info
 	a.transport.SetStateCallback(func(state webrtc.PeerConnectionState) {
 		switch state {
 		case webrtc.PeerConnectionStateConnected:
-			a.sessionMgr.Activate(&session.Info{
-				SessionID: sessionID,
-				RobotID:   a.cfg.RobotID,
-			})
+			a.sessionMgr.Activate(validatedInfo)
 			a.safety.Reset()
 		case webrtc.PeerConnectionStateFailed, webrtc.PeerConnectionStateClosed:
 			a.sessionMgr.Terminate()

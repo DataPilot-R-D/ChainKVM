@@ -36,21 +36,26 @@ type Info struct {
 
 // Manager handles session lifecycle.
 type Manager struct {
-	mu        sync.RWMutex
-	robotID   string
-	validator *TokenValidator
-	state     State
-	info      *Info
+	mu         sync.RWMutex
+	robotID    string
+	validator  *TokenValidator
+	tokenCache *TokenCache
+	state      State
+	info       *Info
 
 	onStateChange func(State)
 }
 
+// DefaultTokenCacheTTL is the default TTL for cached token claims.
+const DefaultTokenCacheTTL = 30 * time.Second
+
 // NewManager creates a new session manager.
 func NewManager(robotID string, validator *TokenValidator) *Manager {
 	return &Manager{
-		robotID:   robotID,
-		validator: validator,
-		state:     StatePending,
+		robotID:    robotID,
+		validator:  validator,
+		tokenCache: NewTokenCache(DefaultTokenCacheTTL),
+		state:      StatePending,
 	}
 }
 
@@ -76,6 +81,7 @@ func (m *Manager) Info() *Info {
 }
 
 // ValidateToken validates a capability token using Ed25519 signature.
+// Uses caching for <5ms performance on repeated validations.
 func (m *Manager) ValidateToken(sessionID, token string) (*Info, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -88,20 +94,37 @@ func (m *Manager) ValidateToken(sessionID, token string) (*Info, error) {
 		return nil, ErrInvalidToken
 	}
 
+	// Check cache first for fast path (use token as cache key)
+	cacheKey := token
+	if m.tokenCache != nil {
+		if cached, ok := m.tokenCache.Get(cacheKey, sessionID); ok {
+			return m.claimsToInfo(cached), nil
+		}
+	}
+
+	// Full cryptographic validation
 	claims, err := m.validator.Validate(token, sessionID)
 	if err != nil {
 		return nil, err
 	}
 
-	info := &Info{
+	// Cache for future requests
+	if m.tokenCache != nil {
+		m.tokenCache.Set(cacheKey, sessionID, claims)
+	}
+
+	return m.claimsToInfo(claims), nil
+}
+
+// claimsToInfo converts TokenClaims to session Info.
+func (m *Manager) claimsToInfo(claims *TokenClaims) *Info {
+	return &Info{
 		SessionID:   claims.SessionID,
 		OperatorDID: claims.Subject,
 		RobotID:     m.robotID,
 		Scope:       claims.Scope,
 		ExpiresAt:   claims.ExpiresAt,
 	}
-
-	return info, nil
 }
 
 // Activate transitions to active state with session info.
@@ -133,6 +156,11 @@ func (m *Manager) Terminate() {
 
 	if m.state == StateTerminated {
 		return
+	}
+
+	// Invalidate cached tokens for this session
+	if m.tokenCache != nil && m.info != nil {
+		m.tokenCache.InvalidateSession(m.info.SessionID)
 	}
 
 	m.state = StateTerminated
