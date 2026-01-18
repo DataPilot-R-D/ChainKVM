@@ -5,29 +5,21 @@ import type {
   SessionState,
 } from '../types.js';
 import type { Config } from '../config.js';
+import type { TokenGenerator } from '../tokens/index.js';
 
 // In-memory session store (stub)
 const sessions = new Map<string, SessionState>();
+
+// Module-level token generator (set via setTokenGenerator)
+let tokenGenerator: TokenGenerator | null = null;
 
 function generateId(): string {
   return `ses_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function generateStubToken(sessionId: string, operatorDid: string, robotId: string): string {
-  // Stub: return a placeholder JWT structure
-  // Real implementation will sign with Ed25519
-  const header = Buffer.from(JSON.stringify({ alg: 'EdDSA', typ: 'JWT', kid: 'dev-key-1' })).toString('base64url');
-  const payload = Buffer.from(JSON.stringify({
-    sub: operatorDid,
-    aud: robotId,
-    sid: sessionId,
-    scope: ['teleop:view', 'teleop:control', 'teleop:estop'],
-    exp: Math.floor(Date.now() / 1000) + 3600,
-    iat: Math.floor(Date.now() / 1000),
-    jti: `tok_${Math.random().toString(36).slice(2, 10)}`,
-  })).toString('base64url');
-  const signature = 'stub-signature-not-valid';
-  return `${header}.${payload}.${signature}`;
+/** Set the token generator. Call before registering routes. */
+export function setTokenGenerator(generator: TokenGenerator): void {
+  tokenGenerator = generator;
 }
 
 export async function sessionRoutes(app: FastifyInstance, config: Config): Promise<void> {
@@ -40,25 +32,39 @@ export async function sessionRoutes(app: FastifyInstance, config: Config): Promi
       // Stub: Skip VC verification for now
       // TODO: Implement VC/VP verification (M3-003)
 
+      if (!tokenGenerator) {
+        return reply.status(500).send({
+          error: 'token_generator_not_configured',
+          message: 'Token generator not initialized',
+        });
+      }
+
       const sessionId = generateId();
-      const now = new Date();
-      const expiresAt = new Date(now.getTime() + config.sessionTtlSeconds * 1000);
+      const effectiveScope = requested_scope ?? ['teleop:view', 'teleop:control'];
+
+      const tokenResult = await tokenGenerator.generate({
+        operatorDid: operator_did,
+        robotId: robot_id,
+        sessionId,
+        allowedActions: effectiveScope,
+        ttlSeconds: config.sessionTtlSeconds,
+      });
 
       const session: SessionState = {
         session_id: sessionId,
         robot_id,
         operator_did,
         state: 'pending',
-        created_at: now.toISOString(),
-        expires_at: expiresAt.toISOString(),
-        effective_scope: requested_scope ?? ['teleop:view', 'teleop:control'],
+        created_at: new Date().toISOString(),
+        expires_at: tokenResult.expiresAt.toISOString(),
+        effective_scope: effectiveScope,
       };
 
       sessions.set(sessionId, session);
 
       const response: CreateSessionResponse = {
         session_id: sessionId,
-        capability_token: generateStubToken(sessionId, operator_did, robot_id),
+        capability_token: tokenResult.token,
         signaling_url: `ws://${request.hostname}/v1/signal`,
         ice_servers: [
           { urls: config.stunUrl },
@@ -68,8 +74,8 @@ export async function sessionRoutes(app: FastifyInstance, config: Config): Promi
             credential: 'stub-credential',
           },
         ],
-        expires_at: expiresAt.toISOString(),
-        effective_scope: session.effective_scope,
+        expires_at: tokenResult.expiresAt.toISOString(),
+        effective_scope: effectiveScope,
         limits: {
           max_control_rate_hz: config.maxControlRateHz,
           max_video_bitrate_kbps: config.maxVideoBitrateKbps,
