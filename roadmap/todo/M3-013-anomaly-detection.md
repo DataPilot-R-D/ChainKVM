@@ -22,6 +22,7 @@ As a security administrator, I want the Gateway to detect anomalous behavior so 
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M3-013-anomaly-detection`)
 - [ ] Request pattern tracking
 - [ ] Anomaly scoring algorithm
 - [ ] Alert threshold configuration
@@ -29,8 +30,11 @@ As a security administrator, I want the Gateway to detect anomalous behavior so 
 - [ ] Dashboard/logging integration
 - [ ] False positive handling
 - [ ] Unit tests for detection
-- [ ] Code reviewed and merged
 - [ ] Tests passing
+- [ ] Code simplified
+- [ ] PR created
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 

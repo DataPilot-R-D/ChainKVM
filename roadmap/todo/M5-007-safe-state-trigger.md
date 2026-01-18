@@ -21,6 +21,7 @@ As a Robot Agent, I want to transition to a safe state reliably when triggered s
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M5-007-safe-state-trigger`)
 - [ ] Unified trigger interface
 - [ ] Priority-based trigger handling
 - [ ] Atomic state transition
@@ -28,8 +29,11 @@ As a Robot Agent, I want to transition to a safe state reliably when triggered s
 - [ ] Transition confirmation
 - [ ] Recovery procedure
 - [ ] Unit tests for all triggers
-- [ ] Code reviewed and merged
 - [ ] Tests passing
+- [ ] Code simplified
+- [ ] PR created
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 

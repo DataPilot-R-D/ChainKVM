@@ -20,6 +20,7 @@ As a Robot Agent, I want to terminate sessions on revocation notification so tha
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M5-004-robot-agent-session-termination`)
 - [ ] Revocation notification listener
 - [ ] Session state invalidation
 - [ ] Control command rejection
@@ -27,8 +28,11 @@ As a Robot Agent, I want to terminate sessions on revocation notification so tha
 - [ ] Safe state transition trigger
 - [ ] Termination audit event
 - [ ] Unit tests for termination
-- [ ] Code reviewed and merged
 - [ ] Tests passing
+- [ ] Code simplified
+- [ ] PR created
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 

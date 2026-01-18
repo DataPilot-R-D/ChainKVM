@@ -22,6 +22,7 @@ As an operator, I want clear notification when my session is revoked so that I u
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M5-009-operator-ui-revocation-notification`)
 - [ ] Revocation event listener
 - [ ] Notification UI component
 - [ ] Revocation reason display
@@ -29,8 +30,11 @@ As an operator, I want clear notification when my session is revoked so that I u
 - [ ] Session recovery prevention
 - [ ] Notification styling/UX
 - [ ] Unit tests for notification
-- [ ] Code reviewed and merged
 - [ ] Tests passing
+- [ ] Code simplified
+- [ ] PR created
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 

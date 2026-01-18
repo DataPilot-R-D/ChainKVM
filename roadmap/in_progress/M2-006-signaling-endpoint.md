@@ -22,6 +22,7 @@ As a system component, I need a signaling service so that WebRTC peers can excha
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M2-006-signaling-endpoint`)
 - [ ] WebSocket server endpoint
 - [ ] Room/session management
 - [ ] SDP offer/answer relay
@@ -30,8 +31,11 @@ As a system component, I need a signaling service so that WebRTC peers can excha
 - [ ] Message validation
 - [ ] Connection cleanup
 - [ ] Unit tests for signaling
-- [ ] Code reviewed and merged
 - [ ] Tests passing
+- [ ] Code simplified
+- [ ] PR created
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 

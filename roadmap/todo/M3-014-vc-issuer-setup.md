@@ -24,6 +24,7 @@ As a system administrator, I want a VC Issuer (POC Certificate Authority) so tha
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M3-014-vc-issuer-setup`)
 - [ ] Issuer DID generated (did:key)
 - [ ] Issuer signing keys securely stored
 - [ ] Operator credential issuance implemented
@@ -31,8 +32,11 @@ As a system administrator, I want a VC Issuer (POC Certificate Authority) so tha
 - [ ] Credential schema documented
 - [ ] CLI or API for credential provisioning
 - [ ] Test credentials generated for POC
-- [ ] Code reviewed and merged
 - [ ] Tests passing
+- [ ] Code simplified
+- [ ] PR created
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 

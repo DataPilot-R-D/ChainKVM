@@ -24,14 +24,18 @@ As a system architect, I want to measure control command round-trip time so that
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M6-002-control-rtt-measurement`)
 - [ ] Ping message implementation with monotonic timestamp
 - [ ] Pong response implementation
 - [ ] RTT calculation logic
 - [ ] Sample buffer for distribution tracking
 - [ ] Configurable measurement interval
 - [ ] Export to metrics data store
-- [ ] Code reviewed and merged
 - [ ] Tests passing
+- [ ] Code simplified
+- [ ] PR created
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 

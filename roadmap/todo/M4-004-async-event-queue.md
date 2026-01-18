@@ -21,6 +21,7 @@ As a gateway operator, I want audit events queued asynchronously so that ledger 
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M4-004-async-event-queue`)
 - [ ] In-memory queue implementation
 - [ ] Persistent queue backup
 - [ ] Queue consumer for ledger writes
@@ -28,8 +29,11 @@ As a gateway operator, I want audit events queued asynchronously so that ledger 
 - [ ] Queue depth monitoring
 - [ ] Dead letter handling
 - [ ] Unit tests for queue
-- [ ] Code reviewed and merged
 - [ ] Tests passing
+- [ ] Code simplified
+- [ ] PR created
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 

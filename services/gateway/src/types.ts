@@ -136,6 +136,7 @@ export interface JoinMessage {
   type: 'join';
   session_id: string;
   role: 'operator' | 'robot';
+  token: string;  // Capability token (JWT)
 }
 
 export interface OfferMessage {

@@ -21,6 +21,7 @@ As a developer, I want a well-defined event schema so that audit events are cons
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M4-003-event-schema`)
 - [ ] Event schema definition (JSON Schema)
 - [ ] Required fields specification
 - [ ] Event type enumeration
@@ -28,8 +29,11 @@ As a developer, I want a well-defined event schema so that audit events are cons
 - [ ] Signature/hash fields
 - [ ] Schema validation library
 - [ ] Schema documentation
-- [ ] Code reviewed and merged
 - [ ] Tests passing
+- [ ] Code simplified
+- [ ] PR created
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 

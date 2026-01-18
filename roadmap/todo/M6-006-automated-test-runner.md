@@ -23,6 +23,7 @@ As a QA engineer, I want an automated test scenario runner so that I can execute
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M6-006-automated-test-runner`)
 - [ ] Scenario configuration format (YAML/JSON)
 - [ ] Automated session lifecycle management
 - [ ] Control input simulation
@@ -30,8 +31,11 @@ As a QA engineer, I want an automated test scenario runner so that I can execute
 - [ ] Scenario result collection
 - [ ] Error handling and recovery
 - [ ] Scenario report generation
-- [ ] Code reviewed and merged
 - [ ] Tests passing
+- [ ] Code simplified
+- [ ] PR created
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 

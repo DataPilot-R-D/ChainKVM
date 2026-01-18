@@ -22,6 +22,7 @@ As a QA engineer, I want comprehensive revocation tests so that I can verify all
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M5-011-revocation-scenario-tests`)
 - [ ] Admin revocation test
 - [ ] Token expiry test
 - [ ] Manual session end test
@@ -30,8 +31,11 @@ As a QA engineer, I want comprehensive revocation tests so that I can verify all
 - [ ] Revocation recovery test
 - [ ] Concurrent revocation test
 - [ ] CI integration
-- [ ] Code reviewed and merged
 - [ ] Tests passing
+- [ ] Code simplified
+- [ ] PR created
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 

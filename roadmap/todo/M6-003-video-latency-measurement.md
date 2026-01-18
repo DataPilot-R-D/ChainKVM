@@ -24,14 +24,18 @@ As a system architect, I want to measure end-to-end video latency so that I can 
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M6-003-video-latency-measurement`)
 - [ ] Timestamp overlay on video frames (Robot Agent)
 - [ ] Timestamp extraction on Web Console
 - [ ] Latency calculation with clock offset handling
 - [ ] Distribution tracking over session
 - [ ] Optional "timer-in-frame" external verification
 - [ ] Export to metrics data store
-- [ ] Code reviewed and merged
 - [ ] Tests passing
+- [ ] Code simplified
+- [ ] PR created
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 

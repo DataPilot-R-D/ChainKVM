@@ -23,6 +23,7 @@ As a system administrator, I want a Hyperledger Fabric test network so that the 
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M4-001-hyperledger-fabric-setup`)
 - [ ] Fabric network configuration defined
 - [ ] Docker Compose setup for local development
 - [ ] Network bootstrap scripts
@@ -30,8 +31,11 @@ As a system administrator, I want a Hyperledger Fabric test network so that the 
 - [ ] Basic chaincode deployment verified
 - [ ] Network monitoring setup
 - [ ] Documentation for developers
-- [ ] Code reviewed and merged
 - [ ] Tests passing
+- [ ] Code simplified
+- [ ] PR created
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 

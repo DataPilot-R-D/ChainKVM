@@ -23,14 +23,18 @@ As a system architect, I want to aggregate raw metrics into statistical summarie
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M6-005-metrics-aggregation`)
 - [ ] Percentile calculation (p50, p95, p99)
 - [ ] Basic statistics (min, max, mean, stddev)
 - [ ] Per-session aggregation
 - [ ] Cross-session aggregation
 - [ ] Time-windowed aggregation
 - [ ] Memory-efficient implementation
-- [ ] Code reviewed and merged
 - [ ] Tests passing
+- [ ] Code simplified
+- [ ] PR created
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 

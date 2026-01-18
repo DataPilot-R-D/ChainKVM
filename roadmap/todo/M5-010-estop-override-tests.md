@@ -21,6 +21,7 @@ As a safety engineer, I want comprehensive E-Stop tests so that I can verify the
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M5-010-estop-override-tests`)
 - [ ] E-Stop command test
 - [ ] E-Stop under load test
 - [ ] E-Stop timing verification
@@ -28,8 +29,11 @@ As a safety engineer, I want comprehensive E-Stop tests so that I can verify the
 - [ ] E-Stop recovery test
 - [ ] Hardware E-Stop test (if applicable)
 - [ ] CI integration
-- [ ] Code reviewed and merged
 - [ ] Tests passing
+- [ ] Code simplified
+- [ ] PR created
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 

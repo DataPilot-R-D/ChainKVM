@@ -23,14 +23,18 @@ As a compliance officer, I want privileged robot actions (E_STOP, MODE_SWITCH) l
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M4-007-robot-agent-audit-publishing`)
 - [ ] Event generation for privileged actions (E_STOP, MODE_SWITCH)
 - [ ] Event generation for errors
 - [ ] Local queue for offline operation
 - [ ] Gateway relay for ledger writes
 - [ ] Sync on reconnection
 - [ ] Unit tests for publishing
-- [ ] Code reviewed and merged
 - [ ] Tests passing
+- [ ] Code simplified
+- [ ] PR created
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 

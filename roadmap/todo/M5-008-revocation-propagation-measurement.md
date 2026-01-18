@@ -21,6 +21,7 @@ As a system tester, I want to measure revocation propagation time so that I can 
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M5-008-revocation-propagation-measurement`)
 - [ ] Timestamp capture at revocation API
 - [ ] Timestamp capture at session close
 - [ ] Timestamp capture at safe state entry
@@ -28,8 +29,11 @@ As a system tester, I want to measure revocation propagation time so that I can 
 - [ ] Statistical analysis (p50, p95)
 - [ ] Measurement report generation
 - [ ] Unit tests for measurement
-- [ ] Code reviewed and merged
 - [ ] Tests passing
+- [ ] Code simplified
+- [ ] PR created
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 

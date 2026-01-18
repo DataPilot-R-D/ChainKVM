@@ -25,6 +25,7 @@ As a stakeholder, I want an HTML report template that presents measurement resul
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M6-008-html-report-template`)
 - [ ] HTML template created
 - [ ] Chart generation for latency metrics
 - [ ] NFR pass/fail indicators
@@ -32,8 +33,11 @@ As a stakeholder, I want an HTML report template that presents measurement resul
 - [ ] Test configuration summary
 - [ ] Run comparison view
 - [ ] Self-contained (no external CDN)
-- [ ] Code reviewed and merged
 - [ ] Tests passing
+- [ ] Code simplified
+- [ ] PR created
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 
