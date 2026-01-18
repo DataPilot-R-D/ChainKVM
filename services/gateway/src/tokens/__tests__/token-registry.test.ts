@@ -2,8 +2,12 @@
  * Tests for TokenRegistry - active token tracking with expiry cleanup.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { promises as fs } from 'fs';
+import path from 'path';
+import os from 'os';
 import { createTokenRegistry, type TokenRegistry, type TokenEntry } from '../token-registry.js';
 import { createRevocationCache, type RevocationCache } from '../revocation-cache.js';
+import { createRevocationStore, type RevocationStore } from '../revocation-store.js';
 
 describe('TokenRegistry', () => {
   let registry: TokenRegistry;
@@ -386,6 +390,59 @@ describe('TokenRegistry', () => {
     it('should return null metrics when no cache configured', () => {
       const plainRegistry = createTokenRegistry();
       expect(plainRegistry.getRevocationMetrics()).toBeNull();
+    });
+  });
+
+  describe('revocation persistence integration', () => {
+    let revocationStore: RevocationStore;
+    let persistCache: RevocationCache;
+    let tempDir: string;
+
+    beforeEach(async () => {
+      // Use real timers for file I/O tests
+      vi.useRealTimers();
+      tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'token-registry-persist-'));
+      const storePath = path.join(tempDir, 'revocations.json');
+      revocationStore = createRevocationStore(storePath);
+      persistCache = createRevocationCache();
+      registry = createTokenRegistry(); // Fresh registry for persistence tests
+      registry.setRevocationCache(persistCache);
+      registry.setRevocationStore(revocationStore);
+    });
+
+    afterEach(async () => {
+      await fs.rm(tempDir, { recursive: true, force: true });
+      vi.useFakeTimers(); // Restore fake timers for other tests
+    });
+
+    it('should persist revocations and survive simulated restart', async () => {
+      const entry = makeEntry({ jti: 'tok_persist' });
+      registry.register(entry);
+      registry.revoke('tok_persist', 'test reason');
+
+      // Wait for async append to complete
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      // Simulate restart: create new registry, load from store
+      const newRegistry = createTokenRegistry();
+      const newCache = createRevocationCache();
+      const loaded = await revocationStore.load();
+      newCache.loadFromStore(loaded);
+      newRegistry.setRevocationCache(newCache);
+
+      // Revoked token should still be invalid after "restart"
+      expect(newRegistry.isValid('tok_persist')).toBe(false);
+    });
+
+    it('should persist revocation reason', async () => {
+      const entry = makeEntry({ jti: 'tok_reason' });
+      registry.register(entry);
+      registry.revoke('tok_reason', 'security violation');
+
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      const loaded = await revocationStore.load();
+      expect(loaded[0].reason).toBe('security violation');
     });
   });
 });

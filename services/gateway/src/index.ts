@@ -50,9 +50,16 @@ async function main() {
   const revocationCache = createRevocationCache({ maxSize: config.maxRevocationCacheSize });
 
   // Load persisted revocations on startup
-  const persistedRevocations = await revocationStore.load();
-  revocationCache.loadFromStore(persistedRevocations);
-  console.info('[STARTUP] Loaded %d revocations from store', persistedRevocations.length);
+  try {
+    const persistedRevocations = await revocationStore.load();
+    revocationCache.loadFromStore(persistedRevocations);
+    console.info('[STARTUP] Loaded %d revocations from store', persistedRevocations.length);
+  } catch (err) {
+    console.error('[STARTUP] Failed to load persisted revocations:', err);
+    console.error('[STARTUP] Gateway cannot start with corrupted security state.');
+    console.error('[STARTUP] To recover: backup %s and delete it, then restart.', config.revocationStorePath);
+    process.exit(1);
+  }
 
   // Wire up revocation cache and store to token registry
   tokenRegistry.setRevocationCache(revocationCache);

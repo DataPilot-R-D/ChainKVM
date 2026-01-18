@@ -55,11 +55,28 @@ export function createRevocationStore(filePath: string): RevocationStore {
         const stored: StoredEntry[] = JSON.parse(data);
         return stored.map(parseEntry);
       } catch (err) {
-        if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+        const nodeErr = err as NodeJS.ErrnoException;
+
+        // File doesn't exist yet - expected on first run
+        if (nodeErr.code === 'ENOENT') {
           return [];
         }
-        console.warn('[REVOCATION_STORE] Failed to load revocations:', err);
-        return [];
+
+        // Permission errors - critical, must propagate
+        if (nodeErr.code === 'EACCES' || nodeErr.code === 'EPERM') {
+          console.error('[REVOCATION_STORE] Permission denied:', filePath);
+          throw new Error(`Cannot read revocation store: permission denied at ${filePath}`);
+        }
+
+        // JSON parse errors - file is corrupted
+        if (err instanceof SyntaxError) {
+          console.error('[REVOCATION_STORE] Corrupted store file:', filePath);
+          throw new Error(`Revocation store corrupted at ${filePath}. Backup and recreate the file.`);
+        }
+
+        // Unknown errors - propagate
+        console.error('[REVOCATION_STORE] Failed to load revocations:', err);
+        throw err;
       }
     },
 
@@ -69,7 +86,12 @@ export function createRevocationStore(filePath: string): RevocationStore {
         const stored = entries.map(serializeEntry);
         await fs.writeFile(filePath, JSON.stringify(stored, null, 2), 'utf-8');
       } catch (err) {
-        console.error('[REVOCATION_STORE] Failed to save revocations:', err);
+        console.error('[REVOCATION_STORE] Failed to save revocations:', {
+          error: err,
+          path: filePath,
+          entryCount: entries.length,
+        });
+        throw new Error(`Failed to persist ${entries.length} revocations to ${filePath}`);
       }
     },
 
@@ -79,7 +101,12 @@ export function createRevocationStore(filePath: string): RevocationStore {
         existing.push(entry);
         await this.save(existing);
       } catch (err) {
-        console.error('[REVOCATION_STORE] Failed to append revocation:', err);
+        console.error('[REVOCATION_STORE] Failed to append revocation:', {
+          error: err,
+          jti: entry.jti,
+          path: filePath,
+        });
+        throw new Error(`Failed to persist revocation for token ${entry.jti}`);
       }
     },
   };

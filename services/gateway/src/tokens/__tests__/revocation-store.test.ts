@@ -54,10 +54,41 @@ describe('RevocationStore', () => {
       expect(entries[1].reason).toBeUndefined();
     });
 
-    it('should return empty array for corrupted file', async () => {
+    it('should throw error for corrupted file', async () => {
       await fs.writeFile(testFilePath, 'not json');
+      await expect(store.load()).rejects.toThrow('Revocation store corrupted');
+    });
+  });
+
+  describe('error handling', () => {
+    it('should throw on save failure and not corrupt existing data', async () => {
+      // Save initial data
+      await store.save([makeEntry('jti_original')]);
+
+      // Make file read-only to cause write failure
+      await fs.chmod(testFilePath, 0o444);
+
+      try {
+        await expect(store.save([makeEntry('jti_new')])).rejects.toThrow('Failed to persist');
+      } finally {
+        // Restore permissions for cleanup
+        await fs.chmod(testFilePath, 0o644);
+      }
+
+      // Original data should remain intact
       const entries = await store.load();
-      expect(entries).toEqual([]);
+      expect(entries[0].jti).toBe('jti_original');
+    });
+
+    it('should throw on append failure', async () => {
+      await store.save([makeEntry('jti_1')]);
+      await fs.chmod(testFilePath, 0o444);
+
+      try {
+        await expect(store.append(makeEntry('jti_2'))).rejects.toThrow('Failed to persist');
+      } finally {
+        await fs.chmod(testFilePath, 0o644);
+      }
     });
   });
 
