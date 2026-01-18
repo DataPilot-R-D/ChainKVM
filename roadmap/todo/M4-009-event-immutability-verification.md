@@ -22,6 +22,7 @@ As a compliance officer, I want to verify that audit events haven't been tampere
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M4-009-event-immutability-verification`)
 - [ ] Event signature verification
 - [ ] Hash chain verification
 - [ ] Merkle proof generation
@@ -29,8 +30,11 @@ As a compliance officer, I want to verify that audit events haven't been tampere
 - [ ] Verification report generation
 - [ ] Tampering detection alerts
 - [ ] Unit tests for verification
-- [ ] Code reviewed and merged
 - [ ] Tests passing
+- [ ] PR created
+- [ ] Code simplified
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 

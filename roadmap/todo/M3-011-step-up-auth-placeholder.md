@@ -20,14 +20,18 @@ As a security administrator, I want optional step-up authentication so that high
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M3-011-step-up-auth-placeholder`)
 - [ ] TOTP generation/validation library integrated
 - [ ] Step-up challenge API endpoint
 - [ ] Policy-based step-up triggers
 - [ ] TOTP enrollment placeholder
 - [ ] Bypass for development mode
 - [ ] Unit tests for TOTP
-- [ ] Code reviewed and merged
 - [ ] Tests passing
+- [ ] PR created
+- [ ] Code simplified
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 

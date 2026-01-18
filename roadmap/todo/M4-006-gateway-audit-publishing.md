@@ -21,6 +21,7 @@ As a compliance officer, I want all gateway actions logged to the ledger so that
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M4-006-gateway-audit-publishing`)
 - [ ] Event generation for session start/end
 - [ ] Event generation for policy decisions
 - [ ] Event generation for token operations
@@ -28,8 +29,11 @@ As a compliance officer, I want all gateway actions logged to the ledger so that
 - [ ] Ledger client implementation
 - [ ] Error handling and retry
 - [ ] Unit tests for publishing
-- [ ] Code reviewed and merged
 - [ ] Tests passing
+- [ ] PR created
+- [ ] Code simplified
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 

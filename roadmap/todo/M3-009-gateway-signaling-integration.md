@@ -22,14 +22,18 @@ As a system integrator, I want the Gateway and Signaling service to work togethe
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M3-009-gateway-signaling-integration`)
 - [ ] Signaling authentication via tokens
 - [ ] Pre-connection policy check
 - [ ] Session-token binding
 - [ ] Revocation listener in signaling
 - [ ] Integration tests
 - [ ] Error handling for auth failures
-- [ ] Code reviewed and merged
 - [ ] Tests passing
+- [ ] PR created
+- [ ] Code simplified
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 

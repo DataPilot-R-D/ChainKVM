@@ -21,6 +21,7 @@ As a compliance officer, I want to query the audit ledger so that I can review h
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M4-008-ledger-query-api`)
 - [ ] Query by session ID
 - [ ] Query by time range
 - [ ] Query by actor DID
@@ -29,8 +30,11 @@ As a compliance officer, I want to query the audit ledger so that I can review h
 - [ ] Result filtering
 - [ ] API documentation
 - [ ] Unit tests for queries
-- [ ] Code reviewed and merged
 - [ ] Tests passing
+- [ ] PR created
+- [ ] Code simplified
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 

@@ -21,6 +21,7 @@ As a compliance officer, I want audit events stored immutably on the ledger so t
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M4-002-chaincode-design`)
 - [ ] Chaincode architecture design
 - [ ] Event storage functions
 - [ ] Event query functions
@@ -28,8 +29,11 @@ As a compliance officer, I want audit events stored immutably on the ledger so t
 - [ ] Error handling
 - [ ] Chaincode unit tests
 - [ ] Documentation
-- [ ] Code reviewed and merged
 - [ ] Tests passing
+- [ ] PR created
+- [ ] Code simplified
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 

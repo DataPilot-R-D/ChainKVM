@@ -21,6 +21,7 @@ As a Robot Agent, I want to detect repeated invalid commands so that I can prote
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M5-006-repeated-invalid-command-detection`)
 - [ ] Invalid command counter
 - [ ] Configurable threshold
 - [ ] Time window for counting
@@ -28,8 +29,11 @@ As a Robot Agent, I want to detect repeated invalid commands so that I can prote
 - [ ] Safe state trigger
 - [ ] Alert/audit generation
 - [ ] Unit tests for detection
-- [ ] Code reviewed and merged
 - [ ] Tests passing
+- [ ] PR created
+- [ ] Code simplified
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 

@@ -21,6 +21,7 @@ As a site admin, I want to revoke operator access immediately so that unauthoriz
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M5-001-admin-revocation-endpoint`)
 - [ ] REST API endpoint for revocation
 - [ ] Authentication/authorization for admin
 - [ ] Single session revocation
@@ -28,8 +29,11 @@ As a site admin, I want to revoke operator access immediately so that unauthoriz
 - [ ] Revocation reason capture
 - [ ] Audit event generation
 - [ ] Unit tests for endpoint
-- [ ] Code reviewed and merged
 - [ ] Tests passing
+- [ ] PR created
+- [ ] Code simplified
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 

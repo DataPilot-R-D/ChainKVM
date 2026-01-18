@@ -20,6 +20,7 @@ As a gateway operator, I want WebRTC sessions closed on revocation so that revok
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M5-003-session-teardown-webrtc`)
 - [ ] Signaling server session termination
 - [ ] WebRTC connection close trigger
 - [ ] ICE connection termination
@@ -27,8 +28,11 @@ As a gateway operator, I want WebRTC sessions closed on revocation so that revok
 - [ ] Operator notification (connection closed)
 - [ ] Teardown audit event
 - [ ] Unit tests for teardown
-- [ ] Code reviewed and merged
 - [ ] Tests passing
+- [ ] PR created
+- [ ] Code simplified
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 

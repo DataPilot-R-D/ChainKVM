@@ -26,6 +26,7 @@ As a system architect, I want to test system performance under simulated WAN con
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M6-010-wan-simulation-test`)
 - [ ] WAN simulation tool configured (tc/netem or similar)
 - [ ] Network profiles defined (good, degraded, poor)
 - [ ] Tests executed for each profile
@@ -33,6 +34,10 @@ As a system architect, I want to test system performance under simulated WAN con
 - [ ] Comparison report vs LAN baseline
 - [ ] Graceful degradation behavior documented
 - [ ] Results reviewed with team
+- [ ] PR created
+- [ ] Code simplified
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 

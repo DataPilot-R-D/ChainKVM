@@ -24,14 +24,18 @@ As an operator, I want to export measurement results in standard formats (JSON, 
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M6-007-results-export`)
 - [ ] JSON export implementation
 - [ ] CSV export implementation
 - [ ] Per-session export functionality
 - [ ] Cross-session export functionality
 - [ ] Metadata inclusion
 - [ ] File naming convention documented
-- [ ] Code reviewed and merged
 - [ ] Tests passing
+- [ ] PR created
+- [ ] Code simplified
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 

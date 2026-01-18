@@ -23,6 +23,7 @@ As a QA engineer, I want comprehensive tests for the ledger integration so that 
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M4-010-ledger-test-suite`)
 - [ ] Chaincode unit tests
 - [ ] Event storage tests
 - [ ] Query API tests
@@ -30,8 +31,11 @@ As a QA engineer, I want comprehensive tests for the ledger integration so that 
 - [ ] Performance tests
 - [ ] Failure scenario tests
 - [ ] CI integration
-- [ ] Code reviewed and merged
 - [ ] Tests passing
+- [ ] PR created
+- [ ] Code simplified
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 

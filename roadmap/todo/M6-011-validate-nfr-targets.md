@@ -26,6 +26,7 @@ As a project stakeholder, I want formal validation that the POC meets all NFR pe
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M6-011-validate-nfr-targets`)
 - [ ] NFR-P1 validation complete with evidence
 - [ ] NFR-P2 validation complete with evidence
 - [ ] NFR-P3 validation complete with evidence
@@ -34,6 +35,10 @@ As a project stakeholder, I want formal validation that the POC meets all NFR pe
 - [ ] Gap analysis for any failures
 - [ ] Mitigation recommendations if needed
 - [ ] Sign-off from project stakeholders
+- [ ] PR created
+- [ ] Code simplified
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 

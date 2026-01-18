@@ -25,6 +25,7 @@ As an operator or evaluator, I want a comprehensive measurement guide so that I 
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M6-012-measurement-guide`)
 - [ ] Measurement tool setup instructions
 - [ ] NFR metric explanations (P1-P4)
 - [ ] Test execution procedures
@@ -33,6 +34,10 @@ As an operator or evaluator, I want a comprehensive measurement guide so that I 
 - [ ] Screenshots/diagrams included
 - [ ] Technical review complete
 - [ ] Guide published to docs
+- [ ] PR created
+- [ ] Code simplified
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 

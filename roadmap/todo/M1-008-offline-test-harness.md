@@ -22,14 +22,18 @@ As a developer, I want an offline test harness so that I can develop and test Ro
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M1-008-offline-test-harness`)
 - [ ] Virtual camera feed (test patterns, recorded video)
 - [ ] Motor output verification
 - [ ] KVM output verification
 - [ ] Network condition simulation (latency, packet loss)
 - [ ] Scriptable test scenarios
 - [ ] Documentation for harness usage
-- [ ] Code reviewed and merged
 - [ ] Tests passing
+- [ ] PR created
+- [ ] Code simplified
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 

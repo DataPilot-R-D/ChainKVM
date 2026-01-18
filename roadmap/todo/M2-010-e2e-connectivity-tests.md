@@ -23,6 +23,7 @@ As a QA engineer, I want automated end-to-end tests for connectivity so that reg
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M2-010-e2e-connectivity-tests`)
 - [ ] Connection establishment tests
 - [ ] Video track verification tests
 - [ ] DataChannel round-trip tests
@@ -30,8 +31,11 @@ As a QA engineer, I want automated end-to-end tests for connectivity so that reg
 - [ ] Network condition simulation tests
 - [ ] CI integration
 - [ ] Test documentation
-- [ ] Code reviewed and merged
 - [ ] Tests passing
+- [ ] PR created
+- [ ] Code simplified
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 

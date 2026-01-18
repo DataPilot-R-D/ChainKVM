@@ -26,6 +26,7 @@ As a system architect, I want to establish baseline performance measurements on 
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M6-009-baseline-measurement-lan`)
 - [ ] LAN test environment documented
 - [ ] Minimum 10 test sessions completed
 - [ ] NFR-P1 measurements collected
@@ -35,6 +36,10 @@ As a system architect, I want to establish baseline performance measurements on 
 - [ ] Raw data exported and archived
 - [ ] Baseline report generated
 - [ ] Results reviewed with team
+- [ ] PR created
+- [ ] Code simplified
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 

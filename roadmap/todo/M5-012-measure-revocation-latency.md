@@ -22,6 +22,7 @@ As a system architect, I want revocation latency measurements so that I can veri
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M5-012-measure-revocation-latency`)
 - [ ] Measurement methodology defined
 - [ ] Instrumentation in place
 - [ ] Data collection mechanism
@@ -29,8 +30,11 @@ As a system architect, I want revocation latency measurements so that I can veri
 - [ ] Comparison against targets
 - [ ] Report generation
 - [ ] Recommendations documented
-- [ ] Code reviewed and merged
 - [ ] Tests passing
+- [ ] PR created
+- [ ] Code simplified
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 

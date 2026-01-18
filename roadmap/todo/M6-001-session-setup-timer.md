@@ -23,13 +23,17 @@ As a system architect, I want to measure session setup time so that I can valida
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M6-001-session-setup-timer`)
 - [ ] Timer instrumentation at session request start
 - [ ] Timer instrumentation at each phase boundary
 - [ ] Timer instrumentation at first media frame received
 - [ ] Timestamps exported to measurement data store
 - [ ] Phase breakdown visualization
-- [ ] Code reviewed and merged
 - [ ] Tests passing
+- [ ] PR created
+- [ ] Code simplified
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 

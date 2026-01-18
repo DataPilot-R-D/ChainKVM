@@ -23,6 +23,7 @@ As a QA engineer, I want integration tests covering control flow and audit loggi
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M4-011-integration-test-control-ledger`)
 - [ ] Session lifecycle test
 - [ ] Command execution audit test
 - [ ] Revocation audit test
@@ -30,8 +31,11 @@ As a QA engineer, I want integration tests covering control flow and audit loggi
 - [ ] Failure recovery tests
 - [ ] End-to-end timing tests
 - [ ] CI integration
-- [ ] Code reviewed and merged
 - [ ] Tests passing
+- [ ] PR created
+- [ ] Code simplified
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 

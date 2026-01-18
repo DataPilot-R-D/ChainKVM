@@ -21,14 +21,18 @@ As a system architect, I want verification that ledger operations don't impact c
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M4-012-verify-ledger-nonblocking`)
 - [ ] Control latency measurement with ledger
 - [ ] Control latency measurement without ledger
 - [ ] Comparison report
 - [ ] Ledger failure impact test
 - [ ] Ledger slowdown impact test
 - [ ] Formal verification report
-- [ ] Code reviewed and merged
 - [ ] Tests passing
+- [ ] PR created
+- [ ] Code simplified
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 

@@ -23,6 +23,7 @@ As a system architect, I want to collect transport-level statistics so that I ca
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M6-004-transport-stats-collection`)
 - [ ] WebRTC stats collection implementation
 - [ ] Bitrate tracking (video and data)
 - [ ] Packet loss calculation
@@ -30,8 +31,11 @@ As a system architect, I want to collect transport-level statistics so that I ca
 - [ ] Control message rate tracking
 - [ ] Drop detection and logging
 - [ ] Export to metrics data store
-- [ ] Code reviewed and merged
 - [ ] Tests passing
+- [ ] PR created
+- [ ] Code simplified
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 

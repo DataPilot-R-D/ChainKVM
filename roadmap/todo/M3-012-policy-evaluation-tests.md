@@ -23,6 +23,7 @@ As a QA engineer, I want comprehensive tests for policy evaluation so that acces
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M3-012-policy-evaluation-tests`)
 - [ ] Unit tests for rule parsing
 - [ ] Unit tests for context building
 - [ ] Integration tests for evaluation
@@ -30,8 +31,11 @@ As a QA engineer, I want comprehensive tests for policy evaluation so that acces
 - [ ] Performance tests
 - [ ] Policy conflict tests
 - [ ] CI integration
-- [ ] Code reviewed and merged
 - [ ] Tests passing
+- [ ] PR created
+- [ ] Code simplified
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 

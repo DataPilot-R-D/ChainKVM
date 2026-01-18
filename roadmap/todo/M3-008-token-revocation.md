@@ -20,6 +20,7 @@ As a security administrator, I want to revoke tokens immediately so that comprom
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M3-008-token-revocation`)
 - [ ] Revocation API endpoint
 - [ ] Revocation list storage
 - [ ] Revocation check in validation
@@ -27,8 +28,11 @@ As a security administrator, I want to revoke tokens immediately so that comprom
 - [ ] Bulk revocation support
 - [ ] Revocation audit logging
 - [ ] Unit tests for revocation
-- [ ] Code reviewed and merged
 - [ ] Tests passing
+- [ ] PR created
+- [ ] Code simplified
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 

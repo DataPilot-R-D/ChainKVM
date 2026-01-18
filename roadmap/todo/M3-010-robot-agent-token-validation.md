@@ -20,6 +20,7 @@ As a Robot Agent, I want to validate capability tokens so that only authorized c
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M3-010-robot-agent-token-validation`)
 - [ ] Token signature verification
 - [ ] Expiry validation
 - [ ] Scope checking (allowed actions)
@@ -27,8 +28,11 @@ As a Robot Agent, I want to validate capability tokens so that only authorized c
 - [ ] Token caching for performance
 - [ ] Validation failure logging
 - [ ] Unit tests for validation
-- [ ] Code reviewed and merged
 - [ ] Tests passing
+- [ ] PR created
+- [ ] Code simplified
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 

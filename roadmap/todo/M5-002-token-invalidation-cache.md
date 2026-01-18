@@ -21,6 +21,7 @@ As a gateway operator, I want revoked tokens cached for fast lookup so that revo
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M5-002-token-invalidation-cache`)
 - [ ] In-memory revocation cache
 - [ ] Persistent backing store
 - [ ] Cache invalidation on token expiry
@@ -28,8 +29,11 @@ As a gateway operator, I want revoked tokens cached for fast lookup so that revo
 - [ ] Cache size limits and eviction
 - [ ] Metrics for cache hits/misses
 - [ ] Unit tests for cache operations
-- [ ] Code reviewed and merged
 - [ ] Tests passing
+- [ ] PR created
+- [ ] Code simplified
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 

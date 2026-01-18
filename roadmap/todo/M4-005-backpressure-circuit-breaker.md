@@ -21,6 +21,7 @@ As a gateway operator, I want backpressure and circuit breaker mechanisms so tha
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M4-005-backpressure-circuit-breaker`)
 - [ ] Backpressure detection (queue depth threshold)
 - [ ] Circuit breaker implementation
 - [ ] Failure detection logic
@@ -28,8 +29,11 @@ As a gateway operator, I want backpressure and circuit breaker mechanisms so tha
 - [ ] Metrics for circuit state
 - [ ] Alert generation
 - [ ] Unit tests for patterns
-- [ ] Code reviewed and merged
 - [ ] Tests passing
+- [ ] PR created
+- [ ] Code simplified
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 

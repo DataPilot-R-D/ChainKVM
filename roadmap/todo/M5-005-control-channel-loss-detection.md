@@ -21,6 +21,7 @@ As a Robot Agent, I want to detect control channel loss so that I can enter a sa
 
 ## Definition of Done
 
+- [ ] Feature branch created (`feature/M5-005-control-channel-loss-detection`)
 - [ ] Heartbeat mechanism implementation
 - [ ] Configurable timeout threshold
 - [ ] Channel state monitoring
@@ -28,8 +29,11 @@ As a Robot Agent, I want to detect control channel loss so that I can enter a sa
 - [ ] False positive prevention (jitter tolerance)
 - [ ] Reconnection handling
 - [ ] Unit tests for detection
-- [ ] Code reviewed and merged
 - [ ] Tests passing
+- [ ] PR created
+- [ ] Code simplified
+- [ ] PR reviewed
+- [ ] Merged to main
 
 ## Acceptance Tests (UAT)
 
