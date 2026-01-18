@@ -247,4 +247,66 @@ describe('TokenRegistry', () => {
       expect(registry.size()).toBe(2);
     });
   });
+
+  describe('getByOperator', () => {
+    it('should return all tokens for an operator', () => {
+      const entry1 = makeEntry({ jti: 'tok_1', operatorDid: 'did:key:z6MkOperator1' });
+      const entry2 = makeEntry({ jti: 'tok_2', operatorDid: 'did:key:z6MkOperator1' });
+      const entry3 = makeEntry({ jti: 'tok_3', operatorDid: 'did:key:z6MkOperator2' });
+
+      registry.register(entry1);
+      registry.register(entry2);
+      registry.register(entry3);
+
+      const tokens = registry.getByOperator('did:key:z6MkOperator1');
+      expect(tokens).toHaveLength(2);
+      expect(tokens.map(t => t.jti)).toContain('tok_1');
+      expect(tokens.map(t => t.jti)).toContain('tok_2');
+    });
+
+    it('should return empty array for unknown operator', () => {
+      const tokens = registry.getByOperator('did:key:z6MkUnknown');
+      expect(tokens).toHaveLength(0);
+    });
+  });
+
+  describe('revokeByOperator', () => {
+    it('should revoke all tokens for an operator and return session IDs', () => {
+      const entry1 = makeEntry({ jti: 'tok_1', operatorDid: 'did:key:z6MkOperator1', sessionId: 'ses_1' });
+      const entry2 = makeEntry({ jti: 'tok_2', operatorDid: 'did:key:z6MkOperator1', sessionId: 'ses_2' });
+      const entry3 = makeEntry({ jti: 'tok_3', operatorDid: 'did:key:z6MkOperator2', sessionId: 'ses_3' });
+
+      registry.register(entry1);
+      registry.register(entry2);
+      registry.register(entry3);
+
+      const sessionIds = registry.revokeByOperator('did:key:z6MkOperator1');
+      expect(sessionIds).toHaveLength(2);
+      expect(sessionIds).toContain('ses_1');
+      expect(sessionIds).toContain('ses_2');
+      expect(registry.isValid('tok_1')).toBe(false);
+      expect(registry.isValid('tok_2')).toBe(false);
+      expect(registry.isValid('tok_3')).toBe(true);
+    });
+
+    it('should return unique session IDs when operator has multiple tokens per session', () => {
+      const entry1 = makeEntry({ jti: 'tok_1', operatorDid: 'did:key:z6MkOperator1', sessionId: 'ses_1' });
+      const entry2 = makeEntry({ jti: 'tok_2', operatorDid: 'did:key:z6MkOperator1', sessionId: 'ses_1' });
+      const entry3 = makeEntry({ jti: 'tok_3', operatorDid: 'did:key:z6MkOperator1', sessionId: 'ses_2' });
+
+      registry.register(entry1);
+      registry.register(entry2);
+      registry.register(entry3);
+
+      const sessionIds = registry.revokeByOperator('did:key:z6MkOperator1');
+      expect(sessionIds).toHaveLength(2);
+      expect(sessionIds).toContain('ses_1');
+      expect(sessionIds).toContain('ses_2');
+    });
+
+    it('should return empty array for unknown operator', () => {
+      const sessionIds = registry.revokeByOperator('did:key:z6MkUnknown');
+      expect(sessionIds).toHaveLength(0);
+    });
+  });
 });
