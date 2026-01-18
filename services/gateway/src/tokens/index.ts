@@ -1,5 +1,5 @@
 /**
- * Capability token generation module.
+ * Capability token generation and registry module.
  */
 export type {
   CapabilityTokenClaims,
@@ -9,3 +9,5 @@ export type {
 } from './types.js';
 export { createTokenGenerator, type TokenGenerator } from './token-generator.js';
 export { createDevKeyManager, type KeyManager } from './key-manager.js';
+export { createTokenRegistry, type TokenRegistry, type TokenEntry } from './token-registry.js';
+export { createExpiryMonitor, type ExpiryMonitor, type ExpiryWarning } from './expiry-monitor.js';

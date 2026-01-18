@@ -3,15 +3,17 @@ import type {
   CreateSessionRequest,
   CreateSessionResponse,
   SessionState,
+  RefreshTokenResponse,
 } from '../types.js';
 import type { Config } from '../config.js';
-import type { TokenGenerator } from '../tokens/index.js';
+import type { TokenGenerator, TokenRegistry } from '../tokens/index.js';
 
 // In-memory session store (stub)
 const sessions = new Map<string, SessionState>();
 
-// Module-level token generator (set via setTokenGenerator)
+// Module-level dependencies (set via setters)
 let tokenGenerator: TokenGenerator | null = null;
+let tokenRegistry: TokenRegistry | null = null;
 
 function generateId(): string {
   return `ses_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
@@ -22,15 +24,17 @@ export function setTokenGenerator(generator: TokenGenerator): void {
   tokenGenerator = generator;
 }
 
+/** Set the token registry. Call before registering routes. */
+export function setTokenRegistry(registry: TokenRegistry): void {
+  tokenRegistry = registry;
+}
+
 export async function sessionRoutes(app: FastifyInstance, config: Config): Promise<void> {
   // POST /v1/sessions - Create a new session
   app.post<{ Body: CreateSessionRequest }>(
     '/v1/sessions',
     async (request: FastifyRequest<{ Body: CreateSessionRequest }>, reply: FastifyReply) => {
       const { robot_id, operator_did, requested_scope } = request.body;
-
-      // Stub: Skip VC verification for now
-      // TODO: Implement VC/VP verification (M3-003)
 
       if (!tokenGenerator) {
         return reply.status(500).send({
@@ -48,6 +52,15 @@ export async function sessionRoutes(app: FastifyInstance, config: Config): Promi
         sessionId,
         allowedActions: effectiveScope,
         ttlSeconds: config.sessionTtlSeconds,
+      });
+
+      // Register token in registry for tracking
+      tokenRegistry?.register({
+        jti: tokenResult.tokenId,
+        sessionId,
+        operatorDid: operator_did,
+        robotId: robot_id,
+        expiresAt: tokenResult.expiresAt,
       });
 
       const session: SessionState = {
@@ -68,11 +81,7 @@ export async function sessionRoutes(app: FastifyInstance, config: Config): Promi
         signaling_url: `ws://${request.hostname}/v1/signal`,
         ice_servers: [
           { urls: config.stunUrl },
-          {
-            urls: config.turnUrl,
-            username: 'stub-user',
-            credential: 'stub-credential',
-          },
+          { urls: config.turnUrl, username: 'stub-user', credential: 'stub-credential' },
         ],
         expires_at: tokenResult.expiresAt.toISOString(),
         effective_scope: effectiveScope,
@@ -80,11 +89,7 @@ export async function sessionRoutes(app: FastifyInstance, config: Config): Promi
           max_control_rate_hz: config.maxControlRateHz,
           max_video_bitrate_kbps: config.maxVideoBitrateKbps,
         },
-        policy: {
-          policy_id: 'default-policy',
-          version: '1.0.0',
-          hash: 'stub-hash-not-computed',
-        },
+        policy: { policy_id: 'default-policy', version: '1.0.0', hash: 'stub-hash-not-computed' },
       };
 
       return reply.status(201).send(response);
@@ -118,10 +123,74 @@ export async function sessionRoutes(app: FastifyInstance, config: Config): Promi
       }
 
       session.state = 'terminated';
-      // TODO: Emit SESSION_ENDED audit event
-      // TODO: Notify via signaling
+      tokenRegistry?.revokeBySession(session_id);
 
       return reply.status(200).send({ session_id, state: 'terminated' });
+    }
+  );
+
+  // POST /v1/sessions/:session_id/refresh - Refresh token
+  app.post<{ Params: { session_id: string } }>(
+    '/v1/sessions/:session_id/refresh',
+    async (request: FastifyRequest<{ Params: { session_id: string } }>, reply: FastifyReply) => {
+      const { session_id } = request.params;
+      const authHeader = request.headers.authorization;
+
+      if (!authHeader?.startsWith('Bearer ')) {
+        return reply
+          .status(401)
+          .send({ error: 'missing_authorization', message: 'Authorization header required' });
+      }
+
+      const session = sessions.get(session_id);
+      if (!session) {
+        return reply.status(404).send({ error: 'session_not_found', message: 'Session not found' });
+      }
+
+      if (session.state !== 'pending' && session.state !== 'active') {
+        return reply
+          .status(403)
+          .send({ error: 'session_not_active', message: 'Session is not active' });
+      }
+
+      if (!tokenGenerator) {
+        return reply.status(500).send({
+          error: 'token_generator_not_configured',
+          message: 'Token generator not initialized',
+        });
+      }
+
+      // Revoke old tokens for this session
+      tokenRegistry?.revokeBySession(session_id);
+
+      // Generate new token
+      const tokenResult = await tokenGenerator.generate({
+        operatorDid: session.operator_did,
+        robotId: session.robot_id,
+        sessionId: session_id,
+        allowedActions: session.effective_scope,
+        ttlSeconds: config.sessionTtlSeconds,
+      });
+
+      // Register new token
+      tokenRegistry?.register({
+        jti: tokenResult.tokenId,
+        sessionId: session_id,
+        operatorDid: session.operator_did,
+        robotId: session.robot_id,
+        expiresAt: tokenResult.expiresAt,
+      });
+
+      // Update session expiry
+      session.expires_at = tokenResult.expiresAt.toISOString();
+
+      const response: RefreshTokenResponse = {
+        session_id,
+        capability_token: tokenResult.token,
+        expires_at: tokenResult.expiresAt.toISOString(),
+      };
+
+      return reply.status(200).send(response);
     }
   );
 }

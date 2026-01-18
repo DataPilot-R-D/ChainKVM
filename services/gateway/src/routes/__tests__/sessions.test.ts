@@ -1,9 +1,20 @@
 import { describe, it, expect, beforeEach, afterEach, beforeAll } from 'vitest';
 import Fastify, { FastifyInstance } from 'fastify';
-import { sessionRoutes, getSession, updateSessionState, setTokenGenerator } from '../sessions.js';
+import {
+  sessionRoutes,
+  getSession,
+  updateSessionState,
+  setTokenGenerator,
+  setTokenRegistry,
+} from '../sessions.js';
 import type { Config } from '../../config.js';
 import type { CreateSessionRequest, CreateSessionResponse, SessionState } from '../../types.js';
-import { createTokenGenerator, createDevKeyManager } from '../../tokens/index.js';
+import {
+  createTokenGenerator,
+  createDevKeyManager,
+  createTokenRegistry,
+  type TokenRegistry,
+} from '../../tokens/index.js';
 
 const testConfig: Config = {
   port: 4000,
@@ -16,7 +27,9 @@ const testConfig: Config = {
   maxVideoBitrateKbps: 4000,
 };
 
-// Set up token generator before tests
+let tokenRegistry: TokenRegistry;
+
+// Set up token generator and registry before tests
 beforeAll(async () => {
   const keyManager = await createDevKeyManager();
   const tokenGenerator = await createTokenGenerator(
@@ -24,6 +37,9 @@ beforeAll(async () => {
     keyManager.getKeyId()
   );
   setTokenGenerator(tokenGenerator);
+
+  tokenRegistry = createTokenRegistry();
+  setTokenRegistry(tokenRegistry);
 });
 
 describe('sessionRoutes', () => {
@@ -314,5 +330,157 @@ describe('session helper functions', () => {
       const updated = updateSessionState('ses_nonexistent', 'active');
       expect(updated).toBe(false);
     });
+  });
+});
+
+describe('POST /v1/sessions/:session_id/refresh', () => {
+  let app: FastifyInstance;
+
+  beforeEach(async () => {
+    app = Fastify({ logger: false });
+    await app.register((fastify) => sessionRoutes(fastify, testConfig));
+    await app.ready();
+  });
+
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('should refresh token for valid session with valid token', async () => {
+    // Create session first
+    const createRequest: CreateSessionRequest = {
+      robot_id: 'robot-001',
+      operator_did: 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK',
+      vc_or_vp: 'stub-vc-token',
+      requested_scope: ['teleop:view', 'teleop:control'],
+    };
+
+    const createResponse = await app.inject({
+      method: 'POST',
+      url: '/v1/sessions',
+      payload: createRequest,
+    });
+    const created: CreateSessionResponse = JSON.parse(createResponse.body);
+
+    // Refresh the token
+    const refreshResponse = await app.inject({
+      method: 'POST',
+      url: `/v1/sessions/${created.session_id}/refresh`,
+      headers: {
+        authorization: `Bearer ${created.capability_token}`,
+      },
+    });
+
+    expect(refreshResponse.statusCode).toBe(200);
+    const body = JSON.parse(refreshResponse.body);
+    expect(body.capability_token).toBeDefined();
+    expect(body.capability_token).not.toBe(created.capability_token);
+    expect(body.expires_at).toBeDefined();
+    expect(body.session_id).toBe(created.session_id);
+  });
+
+  it('should return 404 for non-existent session', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/sessions/ses_nonexistent/refresh',
+      headers: {
+        authorization: 'Bearer some-token',
+      },
+    });
+
+    expect(response.statusCode).toBe(404);
+    const body = JSON.parse(response.body);
+    expect(body.error).toBe('session_not_found');
+  });
+
+  it('should return 401 without authorization header', async () => {
+    // Create session first
+    const createResponse = await app.inject({
+      method: 'POST',
+      url: '/v1/sessions',
+      payload: {
+        robot_id: 'robot-001',
+        operator_did: 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK',
+        vc_or_vp: 'stub-vc-token',
+        requested_scope: ['teleop:view'],
+      },
+    });
+    const { session_id } = JSON.parse(createResponse.body);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/v1/sessions/${session_id}/refresh`,
+    });
+
+    expect(response.statusCode).toBe(401);
+    const body = JSON.parse(response.body);
+    expect(body.error).toBe('missing_authorization');
+  });
+
+  it('should return 403 for revoked session', async () => {
+    // Create session first
+    const createResponse = await app.inject({
+      method: 'POST',
+      url: '/v1/sessions',
+      payload: {
+        robot_id: 'robot-001',
+        operator_did: 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK',
+        vc_or_vp: 'stub-vc-token',
+        requested_scope: ['teleop:view'],
+      },
+    });
+    const created: CreateSessionResponse = JSON.parse(createResponse.body);
+
+    // Terminate the session
+    await app.inject({
+      method: 'DELETE',
+      url: `/v1/sessions/${created.session_id}`,
+    });
+
+    // Try to refresh
+    const response = await app.inject({
+      method: 'POST',
+      url: `/v1/sessions/${created.session_id}/refresh`,
+      headers: {
+        authorization: `Bearer ${created.capability_token}`,
+      },
+    });
+
+    expect(response.statusCode).toBe(403);
+    const body = JSON.parse(response.body);
+    expect(body.error).toBe('session_not_active');
+  });
+
+  it('should provide valid expiry time with new token', async () => {
+    const beforeCreate = Date.now();
+
+    // Create session
+    const createResponse = await app.inject({
+      method: 'POST',
+      url: '/v1/sessions',
+      payload: {
+        robot_id: 'robot-001',
+        operator_did: 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK',
+        vc_or_vp: 'stub-vc-token',
+        requested_scope: ['teleop:view'],
+      },
+    });
+    const created: CreateSessionResponse = JSON.parse(createResponse.body);
+
+    // Refresh
+    const refreshResponse = await app.inject({
+      method: 'POST',
+      url: `/v1/sessions/${created.session_id}/refresh`,
+      headers: {
+        authorization: `Bearer ${created.capability_token}`,
+      },
+    });
+
+    const body = JSON.parse(refreshResponse.body);
+    const newExpiry = new Date(body.expires_at).getTime();
+
+    // New expiry should be in the future (at least TTL from now minus some buffer)
+    const expectedMinExpiry = beforeCreate + (testConfig.sessionTtlSeconds - 1) * 1000;
+    expect(newExpiry).toBeGreaterThanOrEqual(expectedMinExpiry);
   });
 });
