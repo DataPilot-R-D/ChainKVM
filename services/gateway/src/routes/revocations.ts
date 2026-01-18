@@ -1,8 +1,10 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import type { CreateRevocationRequest, CreateRevocationResponse } from '../types.js';
+import type { Config } from '../config.js';
 import type { TokenRegistry } from '../tokens/index.js';
 import { updateSessionState } from './sessions.js';
 import { notifyRevocation } from './signaling.js';
+import { requireAdminAuth } from './admin-auth.js';
 
 // In-memory revocation store (stub)
 const revocations = new Map<string, { session_ids: string[]; reason: string; timestamp: string }>();
@@ -17,11 +19,15 @@ function generateRevocationId(): string {
   return `rev_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-export async function revocationRoutes(app: FastifyInstance): Promise<void> {
-  // POST /v1/revocations - Admin revocation
+export async function revocationRoutes(app: FastifyInstance, config: Config): Promise<void> {
+  // POST /v1/revocations - Admin revocation (requires admin API key)
   app.post<{ Body: CreateRevocationRequest }>(
     '/v1/revocations',
     async (request: FastifyRequest<{ Body: CreateRevocationRequest }>, reply: FastifyReply) => {
+      if (!requireAdminAuth(request, reply, config)) {
+        return reply;
+      }
+
       const { session_id, operator_did, reason } = request.body;
 
       if (!session_id && !operator_did) {

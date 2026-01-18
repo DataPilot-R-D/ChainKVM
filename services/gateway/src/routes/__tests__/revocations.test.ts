@@ -9,6 +9,8 @@ import type { Config } from '../../config.js';
 import type { CreateRevocationRequest, CreateRevocationResponse, CreateSessionRequest } from '../../types.js';
 import { createTokenGenerator, createDevKeyManager, createTokenRegistry, TokenRegistry } from '../../tokens/index.js';
 
+const TEST_ADMIN_KEY = 'test-admin-api-key';
+
 const testConfig: Config = {
   port: 4000,
   host: '0.0.0.0',
@@ -18,6 +20,7 @@ const testConfig: Config = {
   sessionTtlSeconds: 3600,
   maxControlRateHz: 20,
   maxVideoBitrateKbps: 4000,
+  adminApiKey: TEST_ADMIN_KEY,
 };
 
 // Set up token generator before tests
@@ -36,7 +39,7 @@ describe('revocationRoutes', () => {
   beforeEach(async () => {
     app = Fastify({ logger: false });
     await app.register((fastify) => sessionRoutes(fastify, testConfig));
-    await app.register(revocationRoutes);
+    await app.register((fastify) => revocationRoutes(fastify, testConfig));
     await app.ready();
   });
 
@@ -62,6 +65,33 @@ describe('revocationRoutes', () => {
   }
 
   describe('POST /v1/revocations', () => {
+    describe('admin authentication', () => {
+      it('should return 401 when admin key is missing', async () => {
+        const response = await app.inject({
+          method: 'POST',
+          url: '/v1/revocations',
+          payload: { session_id: 'test-session', reason: 'Test' },
+        });
+
+        expect(response.statusCode).toBe(401);
+        const body = JSON.parse(response.body);
+        expect(body.error).toBe('missing_admin_key');
+      });
+
+      it('should return 403 when admin key is invalid', async () => {
+        const response = await app.inject({
+          method: 'POST',
+          url: '/v1/revocations',
+          headers: { 'X-Admin-API-Key': 'wrong-key' },
+          payload: { session_id: 'test-session', reason: 'Test' },
+        });
+
+        expect(response.statusCode).toBe(403);
+        const body = JSON.parse(response.body);
+        expect(body.error).toBe('invalid_admin_key');
+      });
+    });
+
     it('should create a revocation for a session', async () => {
       const sessionId = await createTestSession();
 
@@ -73,6 +103,7 @@ describe('revocationRoutes', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/v1/revocations',
+        headers: { 'X-Admin-API-Key': TEST_ADMIN_KEY },
         payload: request,
       });
 
@@ -89,6 +120,7 @@ describe('revocationRoutes', () => {
       await app.inject({
         method: 'POST',
         url: '/v1/revocations',
+        headers: { 'X-Admin-API-Key': TEST_ADMIN_KEY },
         payload: {
           session_id: sessionId,
           reason: 'Policy violation',
@@ -108,6 +140,7 @@ describe('revocationRoutes', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/v1/revocations',
+        headers: { 'X-Admin-API-Key': TEST_ADMIN_KEY },
         payload: request,
       });
 
@@ -124,6 +157,7 @@ describe('revocationRoutes', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/v1/revocations',
+        headers: { 'X-Admin-API-Key': TEST_ADMIN_KEY },
         payload: request,
       });
 
@@ -141,6 +175,7 @@ describe('revocationRoutes', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/v1/revocations',
+        headers: { 'X-Admin-API-Key': TEST_ADMIN_KEY },
         payload: request,
       });
 
@@ -155,6 +190,7 @@ describe('revocationRoutes', () => {
       const createResponse = await app.inject({
         method: 'POST',
         url: '/v1/revocations',
+        headers: { 'X-Admin-API-Key': TEST_ADMIN_KEY },
         payload: {
           session_id: sessionId,
           reason: 'Emergency shutdown required',
@@ -180,6 +216,7 @@ describe('revocationRoutes', () => {
       const createResponse = await app.inject({
         method: 'POST',
         url: '/v1/revocations',
+        headers: { 'X-Admin-API-Key': TEST_ADMIN_KEY },
         payload: {
           session_id: sessionId,
           reason: 'Test revocation',
@@ -285,7 +322,7 @@ describe('revocation integration', () => {
     app = Fastify({ logger: false });
     await app.register(fastifyWebsocket);
     await app.register((fastify) => sessionRoutes(fastify, testConfig));
-    await app.register(revocationRoutes);
+    await app.register((fastify) => revocationRoutes(fastify, testConfig));
     await app.register(signalingRoutes);
     await app.listen({ port: 0, host: '127.0.0.1' });
 
@@ -334,6 +371,7 @@ describe('revocation integration', () => {
       await app.inject({
         method: 'POST',
         url: '/v1/revocations',
+        headers: { 'X-Admin-API-Key': TEST_ADMIN_KEY },
         payload: {
           session_id: sessionId,
           reason: 'Test revocation',
@@ -369,6 +407,7 @@ describe('revocation integration', () => {
       await app.inject({
         method: 'POST',
         url: '/v1/revocations',
+        headers: { 'X-Admin-API-Key': TEST_ADMIN_KEY },
         payload: {
           session_id: sessionId,
           reason: 'Token should be revoked',
@@ -447,6 +486,7 @@ describe('revocation integration', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/v1/revocations',
+        headers: { 'X-Admin-API-Key': TEST_ADMIN_KEY },
         payload: {
           operator_did: operatorDid,
           reason: 'Operator suspended',
@@ -502,6 +542,7 @@ describe('revocation integration', () => {
       await app.inject({
         method: 'POST',
         url: '/v1/revocations',
+        headers: { 'X-Admin-API-Key': TEST_ADMIN_KEY },
         payload: {
           operator_did: operatorDid,
           reason: 'Operator suspended',
