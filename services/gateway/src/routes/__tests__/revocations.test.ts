@@ -21,6 +21,8 @@ const testConfig: Config = {
   maxControlRateHz: 20,
   maxVideoBitrateKbps: 4000,
   adminApiKey: TEST_ADMIN_KEY,
+  maxRevocationCacheSize: 100000,
+  revocationStorePath: 'data/revocations.json',
 };
 
 // Set up token generator before tests

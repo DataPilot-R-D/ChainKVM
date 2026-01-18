@@ -19,7 +19,10 @@ import {
   createTokenGenerator,
   createTokenRegistry,
   createExpiryMonitor,
+  createRevocationCache,
+  createRevocationStore,
 } from './tokens/index.js';
+import { setTokenRegistry as setRevocationTokenRegistry } from './routes/revocations.js';
 
 // Default expiry warning threshold (60 seconds before expiry)
 const EXPIRY_WARNING_THRESHOLD_MS = 60_000;
@@ -41,6 +44,19 @@ async function main() {
   // Initialize token registry and expiry monitor
   const tokenRegistry = createTokenRegistry();
   const expiryMonitor = createExpiryMonitor();
+
+  // Initialize revocation cache with persistence
+  const revocationStore = createRevocationStore(config.revocationStorePath);
+  const revocationCache = createRevocationCache({ maxSize: config.maxRevocationCacheSize });
+
+  // Load persisted revocations on startup
+  const persistedRevocations = await revocationStore.load();
+  revocationCache.loadFromStore(persistedRevocations);
+  console.info('[STARTUP] Loaded %d revocations from store', persistedRevocations.length);
+
+  // Wire up revocation cache and store to token registry
+  tokenRegistry.setRevocationCache(revocationCache);
+  tokenRegistry.setRevocationStore(revocationStore);
 
   // Initialize policy store and evaluator with default policy
   const policyStore = createPolicyStore();
@@ -69,6 +85,7 @@ async function main() {
   setKeyManager(keyManager);
   setTokenGenerator(tokenGenerator);
   setTokenRegistry(tokenRegistry);
+  setRevocationTokenRegistry(tokenRegistry);
   setPolicyEvaluator(policyEvaluator);
   setPolicyStore(policyStore);
 

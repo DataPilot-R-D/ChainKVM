@@ -10,6 +10,10 @@ export interface Config {
   maxControlRateHz: number;
   maxVideoBitrateKbps: number;
   adminApiKey: string;
+  /** Maximum number of revoked tokens to keep in cache. */
+  maxRevocationCacheSize: number;
+  /** File path for persisting revocation cache. */
+  revocationStorePath: string;
 }
 
 export function loadConfig(): Config {
@@ -23,5 +27,7 @@ export function loadConfig(): Config {
     maxControlRateHz: parseInt(process.env.MAX_CONTROL_RATE_HZ ?? '20', 10),
     maxVideoBitrateKbps: parseInt(process.env.MAX_VIDEO_BITRATE_KBPS ?? '4000', 10),
     adminApiKey: process.env.ADMIN_API_KEY ?? 'chainkvm-admin-dev-key-change-in-prod',
+    maxRevocationCacheSize: parseInt(process.env.MAX_REVOCATION_CACHE_SIZE ?? '100000', 10),
+    revocationStorePath: process.env.REVOCATION_STORE_PATH ?? 'data/revocations.json',
   };
 }
