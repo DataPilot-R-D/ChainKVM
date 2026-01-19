@@ -58,6 +58,7 @@ func (m *Monitor) OnValidControl() {
 
 	m.lastControlTime = time.Now()
 	m.invalidCmdCount = 0
+	m.firstInvalidCmdTime = time.Time{}
 
 	// Recover from control loss on reconnection
 	if m.inControlLoss {
