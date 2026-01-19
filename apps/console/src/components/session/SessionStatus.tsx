@@ -6,7 +6,8 @@ export type ConnectionState =
   | 'connecting'
   | 'connected'
   | 'reconnecting'
-  | 'failed';
+  | 'failed'
+  | 'revoked';
 
 export type PermissionLevel = 'view-only' | 'control' | 'admin';
 
@@ -47,6 +48,7 @@ function getConnectionStateLabel(state: ConnectionState): string {
     connected: 'Connected',
     reconnecting: 'Reconnecting...',
     failed: 'Connection Failed',
+    revoked: 'Session Revoked',
   };
   return labels[state];
 }
@@ -75,7 +77,9 @@ export function SessionStatus({
 
   const isConnected =
     connectionState === 'connected' || connectionState === 'reconnecting';
+  const isRevoked = connectionState === 'revoked';
   const showError = errorMessage && connectionState === 'failed';
+  const canRetry = !isRevoked;
   const showExpiryWarning =
     timeToExpiry !== null && timeToExpiry < TOKEN_EXPIRY_WARNING_THRESHOLD;
 
@@ -184,7 +188,7 @@ export function SessionStatus({
           className="session-status__error"
         >
           <span className="error-message">{errorMessage}</span>
-          {onRetry && (
+          {onRetry && canRetry && (
             <button
               type="button"
               className="retry-button"

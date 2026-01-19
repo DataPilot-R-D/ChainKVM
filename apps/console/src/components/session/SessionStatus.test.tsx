@@ -52,6 +52,14 @@ describe('SessionStatus', () => {
       expect(indicator).toHaveClass('connection-indicator--failed');
       expect(screen.getByText(/failed/i)).toBeInTheDocument();
     });
+
+    it('should display revoked state with distinct indicator', () => {
+      render(<SessionStatus connectionState="revoked" />);
+
+      const indicator = screen.getByTestId('connection-indicator');
+      expect(indicator).toHaveClass('connection-indicator--revoked');
+      expect(screen.getByText(/revoked/i)).toBeInTheDocument();
+    });
   });
 
   describe('SessionTimer', () => {

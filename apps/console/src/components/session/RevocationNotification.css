@@ -1,0 +1,120 @@
+.revocation-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.8);
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.revocation-modal {
+  max-width: 400px;
+  width: 90%;
+  background: var(--bg-secondary, #1a1a2e);
+  border: 2px solid #ef4444;
+  border-radius: 12px;
+  box-shadow: 0 0 40px rgba(239, 68, 68, 0.3);
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.revocation-modal__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 24px;
+  background: rgba(239, 68, 68, 0.15);
+  border-bottom: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 10px 10px 0 0;
+}
+
+.revocation-modal__icon {
+  font-size: 28px;
+  color: #ef4444;
+}
+
+.revocation-modal__title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #fca5a5;
+}
+
+.revocation-modal__body {
+  padding: 24px;
+}
+
+.revocation-modal__message {
+  margin: 0 0 16px 0;
+  color: var(--text-primary, #ffffff);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.revocation-modal__reason {
+  padding: 12px 16px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 6px;
+}
+
+.revocation-modal__reason-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary, #a0a0a0);
+}
+
+.revocation-modal__reason-text {
+  color: #fca5a5;
+  font-size: 14px;
+}
+
+.revocation-modal__footer {
+  padding: 16px 24px 24px;
+}
+
+.revocation-modal__button {
+  width: 100%;
+  padding: 12px 24px;
+  background: rgba(107, 114, 128, 0.3);
+  border: 1px solid rgba(107, 114, 128, 0.5);
+  border-radius: 8px;
+  color: var(--text-primary, #ffffff);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.revocation-modal__button:hover {
+  background: rgba(107, 114, 128, 0.4);
+}
+
+.revocation-modal__button:focus {
+  outline: 2px solid #6b7280;
+  outline-offset: 2px;
+}

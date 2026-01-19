@@ -57,6 +57,12 @@
   box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.3);
 }
 
+.connection-indicator--revoked {
+  background-color: #dc2626;
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.3);
+  animation: blink 0.5s ease-in-out infinite;
+}
+
 @keyframes blink {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
