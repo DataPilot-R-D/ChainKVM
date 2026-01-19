@@ -82,3 +82,22 @@ func (a *agent) completeRevocationMeasurement() {
 	a.revocationMetrics.Record(*a.currentRevocation)
 	a.currentRevocation = nil
 }
+
+// SessionSetupMetrics returns the session setup metrics collector.
+func (a *agent) SessionSetupMetrics() *metrics.SessionSetupCollector {
+	return a.sessionSetupMetrics
+}
+
+func (a *agent) recordSessionSetupTimestamp(fn func(*metrics.SessionSetupTimestamps)) {
+	if a.currentSessionSetup != nil {
+		fn(a.currentSessionSetup)
+	}
+}
+
+func (a *agent) completeSessionSetupMeasurement() {
+	if a.currentSessionSetup == nil || a.sessionSetupMetrics == nil {
+		return
+	}
+	a.sessionSetupMetrics.Record(*a.currentSessionSetup)
+	a.currentSessionSetup = nil
+}

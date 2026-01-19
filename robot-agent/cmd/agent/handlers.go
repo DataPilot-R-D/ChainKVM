@@ -19,6 +19,12 @@ var errHardwareUnavailable = errors.New("hardware stop unavailable: handler not 
 
 // OnOffer handles incoming SDP offer from console.
 func (a *agent) OnOffer(sessionID, token string, sdpData []byte) {
+	// Start session setup timing
+	a.currentSessionSetup = &metrics.SessionSetupTimestamps{
+		SessionID:     sessionID,
+		OfferReceived: time.Now(),
+	}
+
 	a.logger.Info("received offer", zap.String("session_id", sessionID))
 
 	// Validate capability token before establishing connection
@@ -29,11 +35,13 @@ func (a *agent) OnOffer(sessionID, token string, sdpData []byte) {
 			zap.Error(err))
 		return
 	}
+	a.recordSessionSetupTimestamp(func(ts *metrics.SessionSetupTimestamps) { ts.TokenValidated = time.Now() })
 
 	if err := a.transport.CreatePeerConnection(); err != nil {
 		a.logger.Error("failed to create peer connection", zap.Error(err))
 		return
 	}
+	a.recordSessionSetupTimestamp(func(ts *metrics.SessionSetupTimestamps) { ts.PeerConnectionCreated = time.Now() })
 
 	a.transport.SetICECallback(func(candidate []byte) {
 		if err := a.signaling.SendICE(sessionID, candidate); err != nil {
@@ -46,12 +54,20 @@ func (a *agent) OnOffer(sessionID, token string, sdpData []byte) {
 	a.transport.SetStateCallback(func(state webrtc.PeerConnectionState) {
 		switch state {
 		case webrtc.PeerConnectionStateConnected:
+			a.recordSessionSetupTimestamp(func(ts *metrics.SessionSetupTimestamps) {
+				ts.ConnectionEstablished = time.Now()
+			})
 			if err := a.sessionMgr.Activate(info); err != nil {
 				a.logger.Error("session activation failed",
 					zap.String("session_id", info.SessionID),
 					zap.Error(err))
 				return
 			}
+			a.recordSessionSetupTimestamp(func(ts *metrics.SessionSetupTimestamps) {
+				ts.SessionActivated = time.Now()
+				ts.DataChannelReady = time.Now()
+			})
+			a.completeSessionSetupMeasurement()
 			a.safety.Reset()
 		case webrtc.PeerConnectionStateFailed, webrtc.PeerConnectionStateClosed:
 			a.sessionMgr.Terminate()
@@ -66,7 +82,9 @@ func (a *agent) OnOffer(sessionID, token string, sdpData []byte) {
 
 	if err := a.signaling.SendAnswer(sessionID, answer); err != nil {
 		a.logger.Error("failed to send answer", zap.Error(err))
+		return
 	}
+	a.recordSessionSetupTimestamp(func(ts *metrics.SessionSetupTimestamps) { ts.AnswerSent = time.Now() })
 }
 
 // OnAnswer handles SDP answer (robot is always answerer).

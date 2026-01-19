@@ -50,8 +50,10 @@ type agent struct {
 	safety             *safety.Monitor
 	handler            *control.Handler
 	audit              *audit.Publisher
-	revocationMetrics  *metrics.RevocationCollector
-	currentRevocation  *metrics.RevocationTimestamps
+	revocationMetrics   *metrics.RevocationCollector
+	currentRevocation   *metrics.RevocationTimestamps
+	sessionSetupMetrics *metrics.SessionSetupCollector
+	currentSessionSetup *metrics.SessionSetupTimestamps
 }
 
 func newAgent(cfg *config.Config, logger *zap.Logger) *agent {
@@ -114,8 +116,9 @@ func (a *agent) initComponents() {
 	// Initialize audit publisher
 	a.audit = audit.NewPublisher(a.cfg.GatewayHTTPURL, a.cfg.RobotID)
 
-	// Initialize revocation metrics collector
+	// Initialize metrics collectors
 	a.revocationMetrics = metrics.NewRevocationCollector(100)
+	a.sessionSetupMetrics = metrics.NewSessionSetupCollector(100)
 
 	a.logger.Info("components initialized")
 }
