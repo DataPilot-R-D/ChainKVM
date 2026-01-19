@@ -78,6 +78,7 @@ func (m *Monitor) OnEStop() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	m.inControlLoss = false // E-Stop is non-recoverable, clear any control loss state
 	m.triggerSafeStop(TriggerEStop)
 }
 
@@ -86,6 +87,7 @@ func (m *Monitor) OnTokenExpired() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	m.inControlLoss = false // Non-recoverable
 	m.triggerSafeStop(TriggerTokenExpired)
 }
 
@@ -94,6 +96,7 @@ func (m *Monitor) OnRevoked() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	m.inControlLoss = false // Non-recoverable
 	m.triggerSafeStop(TriggerRevoked)
 }
 
