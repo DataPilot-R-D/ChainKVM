@@ -93,11 +93,13 @@ export function useSignaling({
             onSessionState?.(msg.session_id, msg.state);
           }
           break;
-        case 'revoked':
-          console.warn('[Signaling] Session revoked:', msg.reason);
-          setRevocationReason(msg.reason || 'Unknown reason');
-          onRevoked?.(msg.session_id || '', msg.reason || '');
+        case 'revoked': {
+          const reason = msg.reason || 'Unknown reason';
+          console.warn('[Signaling] Session revoked:', reason);
+          setRevocationReason(reason);
+          onRevoked?.(msg.session_id || '', reason);
           break;
+        }
         case 'error':
           console.error('[Signaling] Error:', msg.code, msg.message);
           onError?.(msg.code || 'UNKNOWN', msg.message || 'Unknown error');

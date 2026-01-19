@@ -2,50 +2,9 @@
  * Tests for useSignaling hook - WebSocket signaling with revocation handling.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, act, waitFor } from '@testing-library/react';
-import { useSignaling, type SignalingMessage } from './useSignaling';
-
-class MockWebSocket {
-  static instances: MockWebSocket[] = [];
-
-  readyState = WebSocket.CONNECTING;
-  onopen: (() => void) | null = null;
-  onmessage: ((event: { data: string }) => void) | null = null;
-  onclose: ((event: { code: number; reason: string }) => void) | null = null;
-  onerror: (() => void) | null = null;
-  sentMessages: string[] = [];
-
-  constructor(_url: string) {
-    MockWebSocket.instances.push(this);
-  }
-
-  send(data: string): void {
-    this.sentMessages.push(data);
-  }
-
-  close(): void {
-    this.readyState = WebSocket.CLOSED;
-    this.onclose?.({ code: 1000, reason: 'Normal closure' });
-  }
-
-  simulateOpen(): void {
-    this.readyState = WebSocket.OPEN;
-    this.onopen?.();
-  }
-
-  simulateMessage(msg: SignalingMessage): void {
-    this.onmessage?.({ data: JSON.stringify(msg) });
-  }
-
-  simulateClose(code = 1000, reason = ''): void {
-    this.readyState = WebSocket.CLOSED;
-    this.onclose?.({ code, reason });
-  }
-
-  simulateError(): void {
-    this.onerror?.();
-  }
-}
+import { renderHook, act } from '@testing-library/react';
+import { useSignaling } from './useSignaling';
+import { MockWebSocket } from './__tests__/useSignaling.mock';
 
 describe('useSignaling', () => {
   let originalWebSocket: typeof WebSocket;
@@ -69,13 +28,8 @@ describe('useSignaling', () => {
       const { result } = renderHook(() =>
         useSignaling({ url: 'ws://localhost:8080/signal' })
       );
-
       expect(result.current.status).toBe('connecting');
-
-      act(() => {
-        MockWebSocket.instances[0].simulateOpen();
-      });
-
+      act(() => { MockWebSocket.instances[0].simulateOpen(); });
       expect(result.current.status).toBe('connected');
     });
 
@@ -83,15 +37,8 @@ describe('useSignaling', () => {
       const { result } = renderHook(() =>
         useSignaling({ url: 'ws://localhost:8080/signal' })
       );
-
-      act(() => {
-        MockWebSocket.instances[0].simulateOpen();
-      });
-
-      act(() => {
-        MockWebSocket.instances[0].simulateClose();
-      });
-
+      act(() => { MockWebSocket.instances[0].simulateOpen(); });
+      act(() => { MockWebSocket.instances[0].simulateClose(); });
       expect(result.current.status).toBe('disconnected');
     });
 
@@ -99,11 +46,7 @@ describe('useSignaling', () => {
       const { result } = renderHook(() =>
         useSignaling({ url: 'ws://localhost:8080/signal' })
       );
-
-      act(() => {
-        MockWebSocket.instances[0].simulateError();
-      });
-
+      act(() => { MockWebSocket.instances[0].simulateError(); });
       expect(result.current.status).toBe('error');
     });
 
@@ -111,7 +54,6 @@ describe('useSignaling', () => {
       renderHook(() =>
         useSignaling({ url: 'ws://localhost:8080/signal', enabled: false })
       );
-
       expect(MockWebSocket.instances.length).toBe(0);
     });
   });
@@ -121,132 +63,60 @@ describe('useSignaling', () => {
       const { result } = renderHook(() =>
         useSignaling({ url: 'ws://localhost:8080/signal' })
       );
-
-      act(() => {
-        MockWebSocket.instances[0].simulateOpen();
-      });
-
-      act(() => {
-        result.current.sendJoin('ses_123', 'operator', 'token_abc');
-      });
-
+      act(() => { MockWebSocket.instances[0].simulateOpen(); });
+      act(() => { result.current.sendJoin('ses_123', 'operator', 'token_abc'); });
       const sent = JSON.parse(MockWebSocket.instances[0].sentMessages[0]);
-      expect(sent.type).toBe('join');
-      expect(sent.session_id).toBe('ses_123');
-      expect(sent.role).toBe('operator');
-      expect(sent.token).toBe('token_abc');
+      expect(sent).toMatchObject({ type: 'join', session_id: 'ses_123', role: 'operator', token: 'token_abc' });
     });
 
     it('should send offer message', async () => {
       const { result } = renderHook(() =>
         useSignaling({ url: 'ws://localhost:8080/signal' })
       );
-
-      act(() => {
-        MockWebSocket.instances[0].simulateOpen();
-      });
-
+      act(() => { MockWebSocket.instances[0].simulateOpen(); });
       const sdp = { type: 'offer' as const, sdp: 'v=0...' };
-
-      act(() => {
-        result.current.sendOffer('ses_123', sdp);
-      });
-
+      act(() => { result.current.sendOffer('ses_123', sdp); });
       const sent = JSON.parse(MockWebSocket.instances[0].sentMessages[0]);
-      expect(sent.type).toBe('offer');
-      expect(sent.session_id).toBe('ses_123');
-      expect(sent.sdp).toEqual(sdp);
+      expect(sent).toMatchObject({ type: 'offer', session_id: 'ses_123', sdp });
     });
 
     it('should send ICE candidate', async () => {
       const { result } = renderHook(() =>
         useSignaling({ url: 'ws://localhost:8080/signal' })
       );
-
-      act(() => {
-        MockWebSocket.instances[0].simulateOpen();
-      });
-
+      act(() => { MockWebSocket.instances[0].simulateOpen(); });
       const candidate = { candidate: 'candidate:1...' };
-
-      act(() => {
-        result.current.sendIce('ses_123', candidate);
-      });
-
+      act(() => { result.current.sendIce('ses_123', candidate); });
       const sent = JSON.parse(MockWebSocket.instances[0].sentMessages[0]);
-      expect(sent.type).toBe('ice');
-      expect(sent.session_id).toBe('ses_123');
-      expect(sent.candidate).toEqual(candidate);
+      expect(sent).toMatchObject({ type: 'ice', session_id: 'ses_123', candidate });
     });
   });
 
   describe('receiving messages', () => {
     it('should call onOffer callback', async () => {
       const onOffer = vi.fn();
-      const { result } = renderHook(() =>
-        useSignaling({ url: 'ws://localhost:8080/signal', onOffer })
-      );
-
-      act(() => {
-        MockWebSocket.instances[0].simulateOpen();
-      });
-
+      renderHook(() => useSignaling({ url: 'ws://localhost:8080/signal', onOffer }));
+      act(() => { MockWebSocket.instances[0].simulateOpen(); });
       const sdp = { type: 'offer' as const, sdp: 'v=0...' };
-
-      act(() => {
-        MockWebSocket.instances[0].simulateMessage({
-          type: 'offer',
-          session_id: 'ses_123',
-          sdp,
-        });
-      });
-
+      act(() => { MockWebSocket.instances[0].simulateMessage({ type: 'offer', session_id: 'ses_123', sdp }); });
       expect(onOffer).toHaveBeenCalledWith('ses_123', sdp);
     });
 
     it('should call onAnswer callback', async () => {
       const onAnswer = vi.fn();
-      renderHook(() =>
-        useSignaling({ url: 'ws://localhost:8080/signal', onAnswer })
-      );
-
-      act(() => {
-        MockWebSocket.instances[0].simulateOpen();
-      });
-
+      renderHook(() => useSignaling({ url: 'ws://localhost:8080/signal', onAnswer }));
+      act(() => { MockWebSocket.instances[0].simulateOpen(); });
       const sdp = { type: 'answer' as const, sdp: 'v=0...' };
-
-      act(() => {
-        MockWebSocket.instances[0].simulateMessage({
-          type: 'answer',
-          session_id: 'ses_123',
-          sdp,
-        });
-      });
-
+      act(() => { MockWebSocket.instances[0].simulateMessage({ type: 'answer', session_id: 'ses_123', sdp }); });
       expect(onAnswer).toHaveBeenCalledWith('ses_123', sdp);
     });
 
     it('should call onIceCandidate callback', async () => {
       const onIceCandidate = vi.fn();
-      renderHook(() =>
-        useSignaling({ url: 'ws://localhost:8080/signal', onIceCandidate })
-      );
-
-      act(() => {
-        MockWebSocket.instances[0].simulateOpen();
-      });
-
+      renderHook(() => useSignaling({ url: 'ws://localhost:8080/signal', onIceCandidate }));
+      act(() => { MockWebSocket.instances[0].simulateOpen(); });
       const candidate = { candidate: 'candidate:1...' };
-
-      act(() => {
-        MockWebSocket.instances[0].simulateMessage({
-          type: 'ice',
-          session_id: 'ses_123',
-          candidate,
-        });
-      });
-
+      act(() => { MockWebSocket.instances[0].simulateMessage({ type: 'ice', session_id: 'ses_123', candidate }); });
       expect(onIceCandidate).toHaveBeenCalledWith('ses_123', candidate);
     });
   });
@@ -257,21 +127,13 @@ describe('useSignaling', () => {
       const { result } = renderHook(() =>
         useSignaling({ url: 'ws://localhost:8080/signal', onRevoked })
       );
-
-      act(() => {
-        MockWebSocket.instances[0].simulateOpen();
-      });
-
+      act(() => { MockWebSocket.instances[0].simulateOpen(); });
       expect(result.current.revocationReason).toBeNull();
-
       act(() => {
         MockWebSocket.instances[0].simulateMessage({
-          type: 'revoked',
-          session_id: 'ses_123',
-          reason: 'Admin terminated session',
+          type: 'revoked', session_id: 'ses_123', reason: 'Admin terminated session',
         });
       });
-
       expect(result.current.revocationReason).toBe('Admin terminated session');
       expect(onRevoked).toHaveBeenCalledWith('ses_123', 'Admin terminated session');
     });
@@ -281,81 +143,41 @@ describe('useSignaling', () => {
       const { result } = renderHook(() =>
         useSignaling({ url: 'ws://localhost:8080/signal', onRevoked })
       );
-
-      act(() => {
-        MockWebSocket.instances[0].simulateOpen();
-      });
-
-      act(() => {
-        MockWebSocket.instances[0].simulateMessage({
-          type: 'revoked',
-          session_id: 'ses_123',
-        });
-      });
-
+      act(() => { MockWebSocket.instances[0].simulateOpen(); });
+      act(() => { MockWebSocket.instances[0].simulateMessage({ type: 'revoked', session_id: 'ses_123' }); });
       expect(result.current.revocationReason).toBe('Unknown reason');
-      expect(onRevoked).toHaveBeenCalledWith('ses_123', '');
+      expect(onRevoked).toHaveBeenCalledWith('ses_123', 'Unknown reason');
     });
 
     it('should log warning on revocation', async () => {
-      renderHook(() =>
-        useSignaling({ url: 'ws://localhost:8080/signal' })
-      );
-
-      act(() => {
-        MockWebSocket.instances[0].simulateOpen();
-      });
-
+      renderHook(() => useSignaling({ url: 'ws://localhost:8080/signal' }));
+      act(() => { MockWebSocket.instances[0].simulateOpen(); });
       act(() => {
         MockWebSocket.instances[0].simulateMessage({
-          type: 'revoked',
-          session_id: 'ses_123',
-          reason: 'Test revocation',
+          type: 'revoked', session_id: 'ses_123', reason: 'Test revocation',
         });
       });
-
-      expect(console.warn).toHaveBeenCalledWith(
-        '[Signaling] Session revoked:',
-        'Test revocation'
-      );
+      expect(console.warn).toHaveBeenCalledWith('[Signaling] Session revoked:', 'Test revocation');
     });
   });
 
   describe('error handling', () => {
     it('should call onError callback', async () => {
       const onError = vi.fn();
-      renderHook(() =>
-        useSignaling({ url: 'ws://localhost:8080/signal', onError })
-      );
-
-      act(() => {
-        MockWebSocket.instances[0].simulateOpen();
-      });
-
+      renderHook(() => useSignaling({ url: 'ws://localhost:8080/signal', onError }));
+      act(() => { MockWebSocket.instances[0].simulateOpen(); });
       act(() => {
         MockWebSocket.instances[0].simulateMessage({
-          type: 'error',
-          code: 'TOKEN_INVALID',
-          message: 'Token has been revoked',
+          type: 'error', code: 'TOKEN_INVALID', message: 'Token has been revoked',
         });
       });
-
       expect(onError).toHaveBeenCalledWith('TOKEN_INVALID', 'Token has been revoked');
     });
 
     it('should handle malformed messages gracefully', async () => {
-      renderHook(() =>
-        useSignaling({ url: 'ws://localhost:8080/signal' })
-      );
-
-      act(() => {
-        MockWebSocket.instances[0].simulateOpen();
-      });
-
-      act(() => {
-        MockWebSocket.instances[0].onmessage?.({ data: 'not json' });
-      });
-
+      renderHook(() => useSignaling({ url: 'ws://localhost:8080/signal' }));
+      act(() => { MockWebSocket.instances[0].simulateOpen(); });
+      act(() => { MockWebSocket.instances[0].onmessage?.({ data: 'not json' }); });
       expect(console.error).toHaveBeenCalledWith('[Signaling] Invalid message format');
     });
   });
@@ -365,15 +187,8 @@ describe('useSignaling', () => {
       const { result } = renderHook(() =>
         useSignaling({ url: 'ws://localhost:8080/signal' })
       );
-
-      act(() => {
-        MockWebSocket.instances[0].simulateOpen();
-      });
-
-      act(() => {
-        result.current.disconnect();
-      });
-
+      act(() => { MockWebSocket.instances[0].simulateOpen(); });
+      act(() => { result.current.disconnect(); });
       expect(result.current.status).toBe('disconnected');
     });
 
@@ -382,25 +197,15 @@ describe('useSignaling', () => {
         ({ enabled }) => useSignaling({ url: 'ws://localhost:8080/signal', enabled }),
         { initialProps: { enabled: true } }
       );
-
-      act(() => {
-        MockWebSocket.instances[0].simulateOpen();
-      });
-
+      act(() => { MockWebSocket.instances[0].simulateOpen(); });
       act(() => {
         MockWebSocket.instances[0].simulateMessage({
-          type: 'revoked',
-          session_id: 'ses_123',
-          reason: 'First revocation',
+          type: 'revoked', session_id: 'ses_123', reason: 'First revocation',
         });
       });
-
       expect(result.current.revocationReason).toBe('First revocation');
-
-      // Disable and re-enable to create new connection
       rerender({ enabled: false });
       rerender({ enabled: true });
-
       expect(result.current.revocationReason).toBeNull();
     });
   });
