@@ -12,7 +12,7 @@ func TestMonitor_ReconnectionAfterControlLoss(t *testing.T) {
 	var mu sync.Mutex
 
 	timeout := 50 * time.Millisecond
-	m := NewMonitor(timeout, 10, func(trig Trigger) {
+	m := NewMonitor(timeout, 10, 0, func(trig Trigger) {
 		mu.Lock()
 		triggerCount++
 		triggers = append(triggers, trig)
@@ -54,7 +54,7 @@ func TestMonitor_MultipleLossRecoveryCycles(t *testing.T) {
 	var mu sync.Mutex
 
 	timeout := 30 * time.Millisecond
-	m := NewMonitor(timeout, 10, func(trig Trigger) {
+	m := NewMonitor(timeout, 10, 0, func(trig Trigger) {
 		mu.Lock()
 		triggerCount++
 		mu.Unlock()
@@ -95,7 +95,7 @@ func TestMonitor_NonRecoverableTriggers(t *testing.T) {
 			triggerCount := 0
 			var mu sync.Mutex
 
-			m := NewMonitor(500*time.Millisecond, 10, func(trig Trigger) {
+			m := NewMonitor(500*time.Millisecond, 10, 0, func(trig Trigger) {
 				mu.Lock()
 				triggerCount++
 				mu.Unlock()

@@ -11,7 +11,7 @@ func TestMonitor_OnEStop(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(1)
 
-	m := NewMonitor(500*time.Millisecond, 10, func(trig Trigger) {
+	m := NewMonitor(500*time.Millisecond, 10, 0, func(trig Trigger) {
 		triggered = trig
 		wg.Done()
 	})
@@ -30,7 +30,7 @@ func TestMonitor_OnInvalidCommand_Threshold(t *testing.T) {
 	wg.Add(1)
 
 	threshold := 5
-	m := NewMonitor(500*time.Millisecond, threshold, func(trig Trigger) {
+	m := NewMonitor(500*time.Millisecond, threshold, 0, func(trig Trigger) {
 		triggered = trig
 		wg.Done()
 	})
@@ -58,7 +58,7 @@ func TestMonitor_OnInvalidCommand_Threshold(t *testing.T) {
 
 func TestMonitor_OnValidControl_ResetsInvalidCount(t *testing.T) {
 	triggerCount := 0
-	m := NewMonitor(500*time.Millisecond, 5, func(trig Trigger) {
+	m := NewMonitor(500*time.Millisecond, 5, 0, func(trig Trigger) {
 		triggerCount++
 	})
 
@@ -88,7 +88,7 @@ func TestMonitor_CheckControlLoss(t *testing.T) {
 	wg.Add(1)
 
 	timeout := 100 * time.Millisecond
-	m := NewMonitor(timeout, 10, func(trig Trigger) {
+	m := NewMonitor(timeout, 10, 0, func(trig Trigger) {
 		triggered = trig
 		wg.Done()
 	})
@@ -114,7 +114,7 @@ func TestMonitor_CheckControlLoss(t *testing.T) {
 func TestMonitor_OnValidControl_ResetsControlLossTimer(t *testing.T) {
 	triggerCount := 0
 	timeout := 100 * time.Millisecond
-	m := NewMonitor(timeout, 10, func(trig Trigger) {
+	m := NewMonitor(timeout, 10, 0, func(trig Trigger) {
 		triggerCount++
 	})
 
@@ -141,7 +141,7 @@ func TestMonitor_OnTokenExpired(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(1)
 
-	m := NewMonitor(500*time.Millisecond, 10, func(trig Trigger) {
+	m := NewMonitor(500*time.Millisecond, 10, 0, func(trig Trigger) {
 		triggered = trig
 		wg.Done()
 	})
@@ -159,7 +159,7 @@ func TestMonitor_OnRevoked(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(1)
 
-	m := NewMonitor(500*time.Millisecond, 10, func(trig Trigger) {
+	m := NewMonitor(500*time.Millisecond, 10, 0, func(trig Trigger) {
 		triggered = trig
 		wg.Done()
 	})
@@ -176,7 +176,7 @@ func TestMonitor_OnlyTriggersOnce(t *testing.T) {
 	triggerCount := 0
 	var mu sync.Mutex
 
-	m := NewMonitor(500*time.Millisecond, 5, func(trig Trigger) {
+	m := NewMonitor(500*time.Millisecond, 5, 0, func(trig Trigger) {
 		mu.Lock()
 		triggerCount++
 		mu.Unlock()
@@ -203,7 +203,7 @@ func TestMonitor_Reset(t *testing.T) {
 	triggerCount := 0
 	var mu sync.Mutex
 
-	m := NewMonitor(500*time.Millisecond, 5, func(trig Trigger) {
+	m := NewMonitor(500*time.Millisecond, 5, 0, func(trig Trigger) {
 		mu.Lock()
 		triggerCount++
 		mu.Unlock()
@@ -231,7 +231,7 @@ func TestMonitor_Reset(t *testing.T) {
 
 func TestMonitor_NoCallbackIfNil(t *testing.T) {
 	// Should not panic with nil callback
-	m := NewMonitor(500*time.Millisecond, 10, nil)
+	m := NewMonitor(500*time.Millisecond, 10, 0, nil)
 
 	// These should not panic
 	m.OnEStop()

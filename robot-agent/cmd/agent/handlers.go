@@ -133,6 +133,16 @@ func (a *agent) onDataMessage(data []byte) {
 func (a *agent) onSafeStop(trigger safety.Trigger) {
 	a.logger.Warn("safe-stop triggered", zap.String("trigger", string(trigger)))
 
+	// Emit audit event for invalid command threshold
+	if trigger == safety.TriggerInvalidCmds && a.audit != nil {
+		a.audit.Publish(audit.Event{
+			EventType: audit.EventInvalidCommandThreshold,
+			SessionID: a.currentSessionID(),
+			Timestamp: time.Now().UTC(),
+			Metadata:  map[string]string{"trigger": string(trigger)},
+		})
+	}
+
 	stateMsg := protocol.StateMessage{
 		Type:         protocol.TypeState,
 		RobotState:   protocol.RobotStateSafeStop,
@@ -147,4 +157,15 @@ func (a *agent) onSafeStop(trigger safety.Trigger) {
 	if err := a.transport.SendData(data); err != nil {
 		a.logger.Warn("failed to send safe-stop state", zap.Error(err))
 	}
+}
+
+func (a *agent) currentSessionID() string {
+	if a.sessionMgr == nil {
+		return ""
+	}
+	info := a.sessionMgr.Info()
+	if info == nil {
+		return ""
+	}
+	return info.SessionID
 }

@@ -25,10 +25,11 @@ type Config struct {
 	VideoFPS     int
 
 	// Safety
-	ControlLossTimeoutMS int
-	RateLimitDriveHz     int
-	RateLimitKVMHz       int
-	InvalidCmdThreshold  int
+	ControlLossTimeoutMS   int
+	RateLimitDriveHz       int
+	RateLimitKVMHz         int
+	InvalidCmdThreshold    int
+	InvalidCmdTimeWindowMS int
 
 	// ICE
 	STUNServers []string
@@ -43,10 +44,11 @@ func Load() (*Config, error) {
 		VideoCodec:           "h264",
 		VideoBitrate:         2000000,
 		VideoFPS:             30,
-		ControlLossTimeoutMS: 500,
-		RateLimitDriveHz:     50,
-		RateLimitKVMHz:       100,
-		InvalidCmdThreshold:  10,
+		ControlLossTimeoutMS:   500,
+		RateLimitDriveHz:       50,
+		RateLimitKVMHz:         100,
+		InvalidCmdThreshold:    10,
+		InvalidCmdTimeWindowMS: 30000,
 	}
 
 	// Required
@@ -86,6 +88,7 @@ func Load() (*Config, error) {
 	cfg.RateLimitDriveHz = envInt("RATE_LIMIT_DRIVE_HZ", cfg.RateLimitDriveHz)
 	cfg.RateLimitKVMHz = envInt("RATE_LIMIT_KVM_HZ", cfg.RateLimitKVMHz)
 	cfg.InvalidCmdThreshold = envInt("INVALID_CMD_THRESHOLD", cfg.InvalidCmdThreshold)
+	cfg.InvalidCmdTimeWindowMS = envInt("INVALID_CMD_TIME_WINDOW_MS", cfg.InvalidCmdTimeWindowMS)
 
 	// ICE servers
 	if v := os.Getenv("STUN_SERVERS"); v != "" {
