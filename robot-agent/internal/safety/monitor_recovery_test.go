@@ -12,17 +12,17 @@ func TestMonitor_ReconnectionAfterControlLoss(t *testing.T) {
 	var mu sync.Mutex
 
 	timeout := 50 * time.Millisecond
-	m := NewMonitor(timeout, 10, 0, func(trig Trigger) {
+	m := NewMonitor(timeout, 10, 0, func(trig Trigger) TransitionResult {
 		mu.Lock()
 		triggerCount++
 		triggers = append(triggers, trig)
 		mu.Unlock()
+		return TransitionResult{Trigger: trig, Timestamp: time.Now()}
 	})
 
 	// Wait for control loss
 	time.Sleep(timeout + 20*time.Millisecond)
 	m.CheckControlLoss()
-	time.Sleep(10 * time.Millisecond)
 
 	mu.Lock()
 	if triggerCount != 1 || triggers[0] != TriggerControlLoss {
@@ -37,7 +37,6 @@ func TestMonitor_ReconnectionAfterControlLoss(t *testing.T) {
 	// Wait for another control loss
 	time.Sleep(timeout + 20*time.Millisecond)
 	m.CheckControlLoss()
-	time.Sleep(10 * time.Millisecond)
 
 	mu.Lock()
 	count := triggerCount
@@ -54,10 +53,11 @@ func TestMonitor_MultipleLossRecoveryCycles(t *testing.T) {
 	var mu sync.Mutex
 
 	timeout := 30 * time.Millisecond
-	m := NewMonitor(timeout, 10, 0, func(trig Trigger) {
+	m := NewMonitor(timeout, 10, 0, func(trig Trigger) TransitionResult {
 		mu.Lock()
 		triggerCount++
 		mu.Unlock()
+		return TransitionResult{Trigger: trig, Timestamp: time.Now()}
 	})
 
 	// Perform 3 loss/recovery cycles
@@ -65,7 +65,6 @@ func TestMonitor_MultipleLossRecoveryCycles(t *testing.T) {
 		// Wait for control loss
 		time.Sleep(timeout + 10*time.Millisecond)
 		m.CheckControlLoss()
-		time.Sleep(5 * time.Millisecond)
 
 		// Recover
 		m.OnValidControl()
@@ -95,18 +94,17 @@ func TestMonitor_NonRecoverableTriggers(t *testing.T) {
 			triggerCount := 0
 			var mu sync.Mutex
 
-			m := NewMonitor(500*time.Millisecond, 10, 0, func(trig Trigger) {
+			m := NewMonitor(500*time.Millisecond, 10, 0, func(trig Trigger) TransitionResult {
 				mu.Lock()
 				triggerCount++
 				mu.Unlock()
+				return TransitionResult{Trigger: trig, Timestamp: time.Now()}
 			})
 
 			tt.trigger(m)
-			time.Sleep(10 * time.Millisecond)
 
 			m.OnValidControl()
 			tt.trigger(m)
-			time.Sleep(10 * time.Millisecond)
 
 			mu.Lock()
 			count := triggerCount

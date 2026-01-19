@@ -8,16 +8,14 @@ import (
 
 func TestMonitor_OnEStop(t *testing.T) {
 	var triggered Trigger
-	var wg sync.WaitGroup
-	wg.Add(1)
 
-	m := NewMonitor(500*time.Millisecond, 10, 0, func(trig Trigger) {
+	m := NewMonitor(500*time.Millisecond, 10, 0, func(trig Trigger) TransitionResult {
 		triggered = trig
-		wg.Done()
+		return TransitionResult{Trigger: trig, Timestamp: time.Now()}
 	})
 
 	m.OnEStop()
-	wg.Wait()
+	// Callback is now synchronous - no need to wait
 
 	if triggered != TriggerEStop {
 		t.Errorf("expected TriggerEStop, got %s", triggered)
@@ -26,13 +24,11 @@ func TestMonitor_OnEStop(t *testing.T) {
 
 func TestMonitor_OnInvalidCommand_Threshold(t *testing.T) {
 	var triggered Trigger
-	var wg sync.WaitGroup
-	wg.Add(1)
 
 	threshold := 5
-	m := NewMonitor(500*time.Millisecond, threshold, 0, func(trig Trigger) {
+	m := NewMonitor(500*time.Millisecond, threshold, 0, func(trig Trigger) TransitionResult {
 		triggered = trig
-		wg.Done()
+		return TransitionResult{Trigger: trig, Timestamp: time.Now()}
 	})
 
 	// Send threshold-1 invalid commands - should not trigger
@@ -40,16 +36,12 @@ func TestMonitor_OnInvalidCommand_Threshold(t *testing.T) {
 		m.OnInvalidCommand()
 	}
 
-	// Give a moment for any async trigger (should not happen)
-	time.Sleep(10 * time.Millisecond)
-
 	if triggered != "" {
 		t.Errorf("should not trigger before threshold, got %s", triggered)
 	}
 
 	// Send one more to reach threshold
 	m.OnInvalidCommand()
-	wg.Wait()
 
 	if triggered != TriggerInvalidCmds {
 		t.Errorf("expected TriggerInvalidCmds, got %s", triggered)
@@ -58,8 +50,9 @@ func TestMonitor_OnInvalidCommand_Threshold(t *testing.T) {
 
 func TestMonitor_OnValidControl_ResetsInvalidCount(t *testing.T) {
 	triggerCount := 0
-	m := NewMonitor(500*time.Millisecond, 5, 0, func(trig Trigger) {
+	m := NewMonitor(500*time.Millisecond, 5, 0, func(trig Trigger) TransitionResult {
 		triggerCount++
+		return TransitionResult{Trigger: trig, Timestamp: time.Now()}
 	})
 
 	// Send 4 invalid commands
@@ -75,8 +68,6 @@ func TestMonitor_OnValidControl_ResetsInvalidCount(t *testing.T) {
 		m.OnInvalidCommand()
 	}
 
-	time.Sleep(10 * time.Millisecond)
-
 	if triggerCount != 0 {
 		t.Errorf("should not trigger after reset, triggerCount=%d", triggerCount)
 	}
@@ -84,18 +75,15 @@ func TestMonitor_OnValidControl_ResetsInvalidCount(t *testing.T) {
 
 func TestMonitor_CheckControlLoss(t *testing.T) {
 	var triggered Trigger
-	var wg sync.WaitGroup
-	wg.Add(1)
 
 	timeout := 100 * time.Millisecond
-	m := NewMonitor(timeout, 10, 0, func(trig Trigger) {
+	m := NewMonitor(timeout, 10, 0, func(trig Trigger) TransitionResult {
 		triggered = trig
-		wg.Done()
+		return TransitionResult{Trigger: trig, Timestamp: time.Now()}
 	})
 
 	// Initial state - should not trigger
 	m.CheckControlLoss()
-	time.Sleep(10 * time.Millisecond)
 
 	if triggered != "" {
 		t.Errorf("should not trigger immediately, got %s", triggered)
@@ -104,7 +92,6 @@ func TestMonitor_CheckControlLoss(t *testing.T) {
 	// Wait past timeout
 	time.Sleep(timeout + 50*time.Millisecond)
 	m.CheckControlLoss()
-	wg.Wait()
 
 	if triggered != TriggerControlLoss {
 		t.Errorf("expected TriggerControlLoss, got %s", triggered)
@@ -114,8 +101,9 @@ func TestMonitor_CheckControlLoss(t *testing.T) {
 func TestMonitor_OnValidControl_ResetsControlLossTimer(t *testing.T) {
 	triggerCount := 0
 	timeout := 100 * time.Millisecond
-	m := NewMonitor(timeout, 10, 0, func(trig Trigger) {
+	m := NewMonitor(timeout, 10, 0, func(trig Trigger) TransitionResult {
 		triggerCount++
+		return TransitionResult{Trigger: trig, Timestamp: time.Now()}
 	})
 
 	// Wait half the timeout
@@ -129,7 +117,6 @@ func TestMonitor_OnValidControl_ResetsControlLossTimer(t *testing.T) {
 
 	// Check - should not trigger since timer was reset
 	m.CheckControlLoss()
-	time.Sleep(10 * time.Millisecond)
 
 	if triggerCount != 0 {
 		t.Errorf("should not trigger after control reset, triggerCount=%d", triggerCount)
@@ -138,16 +125,13 @@ func TestMonitor_OnValidControl_ResetsControlLossTimer(t *testing.T) {
 
 func TestMonitor_OnTokenExpired(t *testing.T) {
 	var triggered Trigger
-	var wg sync.WaitGroup
-	wg.Add(1)
 
-	m := NewMonitor(500*time.Millisecond, 10, 0, func(trig Trigger) {
+	m := NewMonitor(500*time.Millisecond, 10, 0, func(trig Trigger) TransitionResult {
 		triggered = trig
-		wg.Done()
+		return TransitionResult{Trigger: trig, Timestamp: time.Now()}
 	})
 
 	m.OnTokenExpired()
-	wg.Wait()
 
 	if triggered != TriggerTokenExpired {
 		t.Errorf("expected TriggerTokenExpired, got %s", triggered)
@@ -156,16 +140,13 @@ func TestMonitor_OnTokenExpired(t *testing.T) {
 
 func TestMonitor_OnRevoked(t *testing.T) {
 	var triggered Trigger
-	var wg sync.WaitGroup
-	wg.Add(1)
 
-	m := NewMonitor(500*time.Millisecond, 10, 0, func(trig Trigger) {
+	m := NewMonitor(500*time.Millisecond, 10, 0, func(trig Trigger) TransitionResult {
 		triggered = trig
-		wg.Done()
+		return TransitionResult{Trigger: trig, Timestamp: time.Now()}
 	})
 
 	m.OnRevoked()
-	wg.Wait()
 
 	if triggered != TriggerRevoked {
 		t.Errorf("expected TriggerRevoked, got %s", triggered)
@@ -176,10 +157,11 @@ func TestMonitor_OnlyTriggersOnce(t *testing.T) {
 	triggerCount := 0
 	var mu sync.Mutex
 
-	m := NewMonitor(500*time.Millisecond, 5, 0, func(trig Trigger) {
+	m := NewMonitor(500*time.Millisecond, 5, 0, func(trig Trigger) TransitionResult {
 		mu.Lock()
 		triggerCount++
 		mu.Unlock()
+		return TransitionResult{Trigger: trig, Timestamp: time.Now()}
 	})
 
 	// Trigger multiple times
@@ -187,8 +169,6 @@ func TestMonitor_OnlyTriggersOnce(t *testing.T) {
 	m.OnEStop()
 	m.OnRevoked()
 	m.OnTokenExpired()
-
-	time.Sleep(50 * time.Millisecond)
 
 	mu.Lock()
 	count := triggerCount
@@ -203,22 +183,21 @@ func TestMonitor_Reset(t *testing.T) {
 	triggerCount := 0
 	var mu sync.Mutex
 
-	m := NewMonitor(500*time.Millisecond, 5, 0, func(trig Trigger) {
+	m := NewMonitor(500*time.Millisecond, 5, 0, func(trig Trigger) TransitionResult {
 		mu.Lock()
 		triggerCount++
 		mu.Unlock()
+		return TransitionResult{Trigger: trig, Timestamp: time.Now()}
 	})
 
 	// Trigger e-stop
 	m.OnEStop()
-	time.Sleep(10 * time.Millisecond)
 
 	// Reset
 	m.Reset()
 
 	// Should be able to trigger again
 	m.OnEStop()
-	time.Sleep(10 * time.Millisecond)
 
 	mu.Lock()
 	count := triggerCount

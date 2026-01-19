@@ -130,10 +130,27 @@ func (a *agent) onDataMessage(data []byte) {
 	}
 }
 
-func (a *agent) onSafeStop(trigger safety.Trigger) {
-	a.logger.Warn("safe-stop triggered", zap.String("trigger", string(trigger)))
+func (a *agent) onSafeStop(trigger safety.Trigger) safety.TransitionResult {
+	start := time.Now()
 
-	// Emit audit event for invalid command threshold
+	// Log with priority information
+	a.logger.Warn("safe-stop triggered",
+		zap.String("trigger", string(trigger)),
+		zap.Int("priority", int(trigger.Priority())),
+		zap.Bool("recoverable", trigger.IsRecoverable()))
+
+	// 1. Execute hardware stop (critical path for <100ms)
+	var haltErr error
+	if a.handler != nil && a.handler.RobotAPI() != nil {
+		haltErr = a.handler.RobotAPI().EStop()
+		if haltErr != nil {
+			a.logger.Error("hardware stop failed", zap.Error(haltErr))
+		}
+	}
+
+	duration := time.Since(start)
+
+	// 2. Emit audit event for invalid command threshold
 	if trigger == safety.TriggerInvalidCmds && a.audit != nil {
 		a.audit.Publish(audit.Event{
 			EventType: audit.EventInvalidCommandThreshold,
@@ -143,6 +160,7 @@ func (a *agent) onSafeStop(trigger safety.Trigger) {
 		})
 	}
 
+	// 3. Send state notification to console
 	stateMsg := protocol.StateMessage{
 		Type:         protocol.TypeState,
 		RobotState:   protocol.RobotStateSafeStop,
@@ -152,10 +170,20 @@ func (a *agent) onSafeStop(trigger safety.Trigger) {
 	data, err := json.Marshal(stateMsg)
 	if err != nil {
 		a.logger.Error("failed to marshal state message", zap.Error(err))
-		return
-	}
-	if err := a.transport.SendData(data); err != nil {
+	} else if err := a.transport.SendData(data); err != nil {
 		a.logger.Warn("failed to send safe-stop state", zap.Error(err))
+	}
+
+	// 4. Log timing for measurement (FR-14: <100ms)
+	a.logger.Info("safe-stop transition complete",
+		zap.Duration("duration", duration),
+		zap.Bool("under_100ms", duration < 100*time.Millisecond))
+
+	return safety.TransitionResult{
+		Trigger:   trigger,
+		Timestamp: time.Now(),
+		Duration:  duration,
+		Error:     haltErr,
 	}
 }
 

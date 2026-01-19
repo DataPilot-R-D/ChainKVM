@@ -17,6 +17,10 @@ const (
 	TriggerRevoked       Trigger = "revoked"
 )
 
+// SafeStopCallback is the signature for safe-stop callbacks.
+// Returns TransitionResult for confirmation and timing measurement.
+type SafeStopCallback func(trigger Trigger) TransitionResult
+
 // Monitor watches for safety conditions and triggers safe-stop.
 type Monitor struct {
 	mu sync.Mutex
@@ -29,9 +33,12 @@ type Monitor struct {
 	invalidCmdCount     int
 	firstInvalidCmdTime time.Time
 
-	safeStopFn    func(trigger Trigger)
+	safeStopFn    SafeStopCallback
 	stopped       bool
 	inControlLoss bool // tracks recoverable control loss state
+
+	// lastTransition stores the result of the most recent transition.
+	lastTransition TransitionResult
 }
 
 // NewMonitor creates a new safety monitor.
@@ -39,7 +46,7 @@ func NewMonitor(
 	controlLossTimeout time.Duration,
 	invalidCmdThreshold int,
 	invalidCmdTimeWindow time.Duration,
-	safeStopFn func(trigger Trigger),
+	safeStopFn SafeStopCallback,
 ) *Monitor {
 	return &Monitor{
 		controlLossTimeout:   controlLossTimeout,
@@ -48,6 +55,13 @@ func NewMonitor(
 		safeStopFn:           safeStopFn,
 		lastControlTime:      time.Now(),
 	}
+}
+
+// LastTransition returns the result of the most recent safe-stop transition.
+func (m *Monitor) LastTransition() TransitionResult {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.lastTransition
 }
 
 // OnValidControl should be called when a valid control message is received.
@@ -147,7 +161,8 @@ func (m *Monitor) Reset() {
 	m.inControlLoss = false
 }
 
-// triggerSafeStop triggers safe-stop (must be called with lock held).
+// triggerSafeStop triggers safe-stop synchronously (must be called with lock held).
+// The callback is called directly to ensure <100ms transition time under load.
 func (m *Monitor) triggerSafeStop(trigger Trigger) {
 	if m.stopped {
 		return
@@ -155,6 +170,7 @@ func (m *Monitor) triggerSafeStop(trigger Trigger) {
 	m.stopped = true
 
 	if m.safeStopFn != nil {
-		go m.safeStopFn(trigger)
+		// Call synchronously - no goroutine to guarantee timing
+		m.lastTransition = m.safeStopFn(trigger)
 	}
 }
