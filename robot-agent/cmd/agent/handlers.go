@@ -12,6 +12,7 @@ import (
 	"github.com/datapilot/chainkvm/robot-agent/internal/audit"
 	"github.com/datapilot/chainkvm/robot-agent/internal/metrics"
 	"github.com/datapilot/chainkvm/robot-agent/internal/safety"
+	"github.com/datapilot/chainkvm/robot-agent/pkg/protocol"
 )
 
 // errHardwareUnavailable indicates the hardware stop could not be executed.
@@ -69,6 +70,7 @@ func (a *agent) OnOffer(sessionID, token string, sdpData []byte) {
 			})
 			a.completeSessionSetupMeasurement()
 			a.safety.Reset()
+			a.startControlRTTMeasurement()
 		case webrtc.PeerConnectionStateFailed, webrtc.PeerConnectionStateClosed:
 			a.sessionMgr.Terminate()
 		}
@@ -146,6 +148,29 @@ func (a *agent) OnRevoked(sessionID, reason string) {
 }
 
 func (a *agent) onDataMessage(data []byte) {
+	// Check if this is a pong message for RTT measurement
+	var base protocol.BaseMessage
+	if err := json.Unmarshal(data, &base); err == nil {
+		if base.Type == protocol.TypePong {
+			var pong protocol.PongMessage
+			if err := json.Unmarshal(data, &pong); err == nil {
+				if a.controlRTTMetrics != nil {
+					a.controlRTTMetrics.RecordPong(&pong)
+				}
+			} else {
+				a.logger.Warn("failed to unmarshal pong message",
+					zap.Error(err),
+					zap.Int("data_size", len(data)))
+			}
+			return // Pong processed, don't pass to control handler
+		}
+	} else {
+		a.logger.Debug("failed to unmarshal base message type",
+			zap.Error(err),
+			zap.Int("data_size", len(data)))
+	}
+
+	// Handle control messages
 	ack, err := a.handler.HandleMessage(data)
 	if err != nil {
 		a.logger.Debug("message handling error", zap.Error(err))
@@ -208,4 +233,5 @@ func (a *agent) executeHardwareStop(trigger safety.Trigger) error {
 	}
 	return nil
 }
+
 
