@@ -44,6 +44,16 @@ describe('RevocationNotification', () => {
         screen.getByRole('button', { name: /return to login/i })
       ).toBeInTheDocument();
     });
+
+    it('should not display reason section when reason is empty', () => {
+      render(
+        <RevocationNotification reason="" onDismiss={vi.fn()} />
+      );
+
+      expect(
+        screen.queryByTestId('revocation-reason')
+      ).not.toBeInTheDocument();
+    });
   });
 
   describe('Interactions', () => {
@@ -56,6 +66,18 @@ describe('RevocationNotification', () => {
 
       const button = screen.getByRole('button', { name: /return to login/i });
       fireEvent.click(button);
+
+      expect(onDismiss).toHaveBeenCalledTimes(1);
+    });
+
+    it('should call onDismiss when Escape key is pressed', () => {
+      const onDismiss = vi.fn();
+
+      render(
+        <RevocationNotification reason="Test" onDismiss={onDismiss} />
+      );
+
+      fireEvent.keyDown(document, { key: 'Escape' });
 
       expect(onDismiss).toHaveBeenCalledTimes(1);
     });

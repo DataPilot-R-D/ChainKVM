@@ -1,3 +1,4 @@
+import { useCallback, useEffect } from 'react';
 import './RevocationNotification.css';
 
 export interface RevocationNotificationProps {
@@ -9,6 +10,21 @@ export function RevocationNotification({
   reason,
   onDismiss,
 }: RevocationNotificationProps) {
+  // Handle Escape key to dismiss modal
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onDismiss();
+      }
+    },
+    [onDismiss]
+  );
+
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
+
   return (
     <div
       className="revocation-overlay"

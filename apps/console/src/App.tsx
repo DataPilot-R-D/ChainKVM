@@ -13,7 +13,8 @@ export function App() {
     reason: '',
   });
 
-  // Callback to be passed to useSignaling's onRevoked option
+  // TODO: Wire this to useSignaling's onRevoked option when signaling is integrated
+  // This callback will be passed to useSignaling({ onRevoked: handleRevoked })
   const handleRevoked = useCallback((_sessionId: string, reason: string) => {
     setRevocation({ isRevoked: true, reason });
   }, []);
