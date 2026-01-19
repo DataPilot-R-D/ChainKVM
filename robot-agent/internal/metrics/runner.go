@@ -165,36 +165,40 @@ func CompareResults(lan, wan MeasurementResult) string {
 	return fmt.Sprintf(`
 === Revocation Latency Comparison ===
 
-LAN Results:
-  Total P50: %v (target: %v)
+%s
+%s
+%s
+`, formatProfileResults("LAN", lan), formatWANResults(wan), formatDelta(lan, wan))
+}
+
+func formatProfileResults(name string, r MeasurementResult) string {
+	targets := r.Config.Targets()
+	return fmt.Sprintf(`%s Results:
+  Total P50: %v
   Total P95: %v (target: %v)
   Safe-Stop Max: %v (target: %v)
-  Status: %s
+  Status: %s`,
+		name, r.Report.Total.P50, r.Report.Total.P95, targets.TotalP95,
+		r.Report.SafeStop.Max, targets.SafeStopMax, statusStr(r.Report.MeetsTarget))
+}
 
-WAN Results (RTT: %v):
-  Total P50: %v (target: %v)
+func formatWANResults(r MeasurementResult) string {
+	targets := r.Config.Targets()
+	return fmt.Sprintf(`WAN Results (RTT: %v):
+  Total P50: %v
   Total P95: %v (target: %v)
   Safe-Stop Max: %v (target: %v)
-  Status: %s
+  Status: %s`,
+		r.Config.SimulatedRTT, r.Report.Total.P50, r.Report.Total.P95, targets.TotalP95,
+		r.Report.SafeStop.Max, targets.SafeStopMax, statusStr(r.Report.MeetsTarget))
+}
 
-Latency Delta (WAN - LAN):
+func formatDelta(lan, wan MeasurementResult) string {
+	return fmt.Sprintf(`Latency Delta (WAN - LAN):
   P50: +%v
-  P95: +%v
-`,
-		lan.Report.Total.P50, lan.Config.Targets().TotalP95,
-		lan.Report.Total.P95, lan.Config.Targets().TotalP95,
-		lan.Report.SafeStop.Max, lan.Config.Targets().SafeStopMax,
-		statusStr(lan.Report.MeetsTarget),
-
-		wan.Config.SimulatedRTT,
-		wan.Report.Total.P50, wan.Config.Targets().TotalP95,
-		wan.Report.Total.P95, wan.Config.Targets().TotalP95,
-		wan.Report.SafeStop.Max, wan.Config.Targets().SafeStopMax,
-		statusStr(wan.Report.MeetsTarget),
-
+  P95: +%v`,
 		wan.Report.Total.P50-lan.Report.Total.P50,
-		wan.Report.Total.P95-lan.Report.Total.P95,
-	)
+		wan.Report.Total.P95-lan.Report.Total.P95)
 }
 
 func statusStr(pass bool) string {

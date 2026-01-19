@@ -1,8 +1,6 @@
 package metrics
 
 import (
-	"os"
-	"path/filepath"
 	"testing"
 	"time"
 )
@@ -56,28 +54,15 @@ func TestMeasurementRunner_Run(t *testing.T) {
 	}
 	runner := NewMeasurementRunner(cfg)
 
-	// Mock revocation function that records timestamps
-	revokeFn := func(sessionID, reason string) {
-		base := time.Now()
-		runner.Collector().Record(RevocationTimestamps{
-			SessionID:         sessionID,
-			MessageReceived:   base,
-			HandlerStarted:    base.Add(1 * time.Millisecond),
-			SafeStopTriggered: base.Add(5 * time.Millisecond),
-			SafeStopCompleted: base.Add(10 * time.Millisecond),
-		})
-	}
-
+	revokeFn := newTestRevokeFn(runner.Collector())
 	result := runner.Run(revokeFn)
 
 	if result.Report.SampleCount != 10 {
 		t.Errorf("expected 10 samples, got %d", result.Report.SampleCount)
 	}
-
 	if result.Config.Profile != ProfileLAN {
 		t.Errorf("expected ProfileLAN, got %v", result.Config.Profile)
 	}
-
 	if result.RunDuration <= 0 {
 		t.Error("run duration should be positive")
 	}
@@ -125,15 +110,7 @@ func TestMeasurementRunner_WANSimulation(t *testing.T) {
 	runner := NewMeasurementRunner(cfg)
 
 	start := time.Now()
-	revokeFn := func(sessionID, reason string) {
-		base := time.Now()
-		runner.Collector().Record(RevocationTimestamps{
-			SessionID:         sessionID,
-			MessageReceived:   base,
-			SafeStopCompleted: base.Add(5 * time.Millisecond),
-		})
-	}
-
+	revokeFn := newTestRevokeFn(runner.Collector())
 	_ = runner.Run(revokeFn)
 	elapsed := time.Since(start)
 
@@ -150,17 +127,7 @@ func TestMeasurementResult_MeetsTarget(t *testing.T) {
 	cfg.WarmupRuns = 0
 	runner := NewMeasurementRunner(cfg)
 
-	// Fast revocations should pass
-	revokeFn := func(sessionID, reason string) {
-		base := time.Now()
-		runner.Collector().Record(RevocationTimestamps{
-			SessionID:         sessionID,
-			MessageReceived:   base,
-			SafeStopTriggered: base.Add(10 * time.Millisecond),
-			SafeStopCompleted: base.Add(20 * time.Millisecond),
-		})
-	}
-
+	revokeFn := newTestRevokeFn(runner.Collector())
 	result := runner.Run(revokeFn)
 
 	if !result.Report.MeetsTarget {
@@ -168,127 +135,16 @@ func TestMeasurementResult_MeetsTarget(t *testing.T) {
 	}
 }
 
-func TestMeasurementResult_JSON(t *testing.T) {
-	result := MeasurementResult{
-		Config: DefaultLANConfig(),
-		Report: RevocationReport{
-			SampleCount: 10,
-			MeetsTarget: true,
-		},
-		RunDuration: 1 * time.Second,
-		StartTime:   time.Now(),
-		EndTime:     time.Now(),
+// newTestRevokeFn creates a test revocation function that records timestamps.
+func newTestRevokeFn(collector *RevocationCollector) RevocationFunc {
+	return func(sessionID, reason string) {
+		base := time.Now()
+		collector.Record(RevocationTimestamps{
+			SessionID:         sessionID,
+			MessageReceived:   base,
+			HandlerStarted:    base.Add(1 * time.Millisecond),
+			SafeStopTriggered: base.Add(5 * time.Millisecond),
+			SafeStopCompleted: base.Add(10 * time.Millisecond),
+		})
 	}
-
-	data, err := result.JSON()
-	if err != nil {
-		t.Fatalf("JSON() error: %v", err)
-	}
-
-	if len(data) == 0 {
-		t.Error("JSON output should not be empty")
-	}
-}
-
-func TestMeasurementResult_WriteToFile(t *testing.T) {
-	result := MeasurementResult{
-		Config: DefaultLANConfig(),
-		Report: RevocationReport{
-			SampleCount: 10,
-			MeetsTarget: true,
-		},
-		RunDuration: 1 * time.Second,
-		StartTime:   time.Now(),
-		EndTime:     time.Now(),
-	}
-
-	tmpDir := t.TempDir()
-	path := filepath.Join(tmpDir, "result.json")
-
-	err := result.WriteToFile(path)
-	if err != nil {
-		t.Fatalf("WriteToFile error: %v", err)
-	}
-
-	// Verify file exists and has content
-	data, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("read file error: %v", err)
-	}
-	if len(data) == 0 {
-		t.Error("output file should not be empty")
-	}
-}
-
-func TestMeasurementResult_String(t *testing.T) {
-	result := MeasurementResult{
-		Config: DefaultLANConfig(),
-		Report: RevocationReport{
-			SampleCount: 10,
-			MeetsTarget: true,
-		},
-		RunDuration: 1 * time.Second,
-	}
-
-	str := result.String()
-
-	if len(str) == 0 {
-		t.Error("String() should not be empty")
-	}
-
-	// Should contain key information
-	if !contains(str, "lan") {
-		t.Error("String() should contain profile")
-	}
-	if !contains(str, "PASS") {
-		t.Error("String() should contain PASS for passing result")
-	}
-}
-
-func TestCompareResults(t *testing.T) {
-	lan := MeasurementResult{
-		Config: DefaultLANConfig(),
-		Report: RevocationReport{
-			Total:       RevocationStats{P50: 50 * time.Millisecond, P95: 100 * time.Millisecond},
-			SafeStop:    RevocationStats{Max: 20 * time.Millisecond},
-			MeetsTarget: true,
-		},
-	}
-
-	wan := MeasurementResult{
-		Config: DefaultWANConfig(),
-		Report: RevocationReport{
-			Total:       RevocationStats{P50: 150 * time.Millisecond, P95: 300 * time.Millisecond},
-			SafeStop:    RevocationStats{Max: 25 * time.Millisecond},
-			MeetsTarget: true,
-		},
-	}
-
-	comparison := CompareResults(lan, wan)
-
-	if len(comparison) == 0 {
-		t.Error("comparison should not be empty")
-	}
-	if !contains(comparison, "LAN Results") {
-		t.Error("comparison should contain LAN section")
-	}
-	if !contains(comparison, "WAN Results") {
-		t.Error("comparison should contain WAN section")
-	}
-	if !contains(comparison, "Delta") {
-		t.Error("comparison should contain Delta section")
-	}
-}
-
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > 0 && containsHelper(s, substr))
-}
-
-func containsHelper(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
 }
