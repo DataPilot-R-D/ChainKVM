@@ -13,6 +13,7 @@ import (
 	"github.com/datapilot/chainkvm/robot-agent/config"
 	"github.com/datapilot/chainkvm/robot-agent/internal/audit"
 	"github.com/datapilot/chainkvm/robot-agent/internal/control"
+	"github.com/datapilot/chainkvm/robot-agent/internal/metrics"
 	"github.com/datapilot/chainkvm/robot-agent/internal/safety"
 	"github.com/datapilot/chainkvm/robot-agent/internal/session"
 	"github.com/datapilot/chainkvm/robot-agent/internal/transport"
@@ -43,12 +44,14 @@ type agent struct {
 	cfg    *config.Config
 	logger *zap.Logger
 
-	sessionMgr *session.Manager
-	signaling  *session.SignalingClient
-	transport  *transport.WebRTC
-	safety     *safety.Monitor
-	handler    *control.Handler
-	audit      *audit.Publisher
+	sessionMgr         *session.Manager
+	signaling          *session.SignalingClient
+	transport          *transport.WebRTC
+	safety             *safety.Monitor
+	handler            *control.Handler
+	audit              *audit.Publisher
+	revocationMetrics  *metrics.RevocationCollector
+	currentRevocation  *metrics.RevocationTimestamps
 }
 
 func newAgent(cfg *config.Config, logger *zap.Logger) *agent {
@@ -110,6 +113,9 @@ func (a *agent) initComponents() {
 
 	// Initialize audit publisher
 	a.audit = audit.NewPublisher(a.cfg.GatewayHTTPURL, a.cfg.RobotID)
+
+	// Initialize revocation metrics collector
+	a.revocationMetrics = metrics.NewRevocationCollector(100)
 
 	a.logger.Info("components initialized")
 }
