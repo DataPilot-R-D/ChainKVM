@@ -10,6 +10,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/datapilot/chainkvm/robot-agent/internal/audit"
+	"github.com/datapilot/chainkvm/robot-agent/internal/metrics"
 	"github.com/datapilot/chainkvm/robot-agent/internal/safety"
 	"github.com/datapilot/chainkvm/robot-agent/pkg/protocol"
 )
@@ -89,19 +90,31 @@ func (a *agent) OnBye(sessionID string) {
 
 // OnRevoked handles session revocation from gateway.
 func (a *agent) OnRevoked(sessionID, reason string) {
+	// Start timestamp capture for revocation measurement
+	ts := &metrics.RevocationTimestamps{
+		SessionID:       sessionID,
+		MessageReceived: time.Now(),
+	}
+	a.currentRevocation = ts
+
 	a.logger.Warn("session revoked",
 		zap.String("session_id", sessionID),
 		zap.String("reason", reason))
+
+	ts.HandlerStarted = time.Now()
 
 	// Close WebRTC transport to stop media and control
 	if a.transport != nil {
 		a.transport.Close()
 	}
+	ts.TransportClosed = time.Now()
 
 	// Terminate session (invalidates token cache)
 	a.sessionMgr.Terminate()
+	ts.SessionTerminated = time.Now()
 
-	// Trigger safe-stop
+	// Trigger safe-stop (captures SafeStopTriggered/Completed in onSafeStop)
+	ts.SafeStopTriggered = time.Now()
 	a.safety.OnRevoked()
 
 	// Emit termination audit event
@@ -143,10 +156,23 @@ func (a *agent) onSafeStop(trigger safety.Trigger) safety.TransitionResult {
 		zap.Bool("recoverable", trigger.IsRecoverable()))
 
 	haltErr := a.executeHardwareStop(trigger)
+
+	// Capture hardware stop timestamp for revocation measurements
+	if a.currentRevocation != nil {
+		a.currentRevocation.HardwareStopIssued = time.Now()
+	}
+
 	duration := time.Since(start)
 
 	a.publishAuditEvent(trigger)
 	a.sendStateNotification(haltErr)
+
+	// Complete revocation measurement and record
+	if a.currentRevocation != nil && a.revocationMetrics != nil {
+		a.currentRevocation.SafeStopCompleted = time.Now()
+		a.revocationMetrics.Record(*a.currentRevocation)
+		a.currentRevocation = nil
+	}
 
 	a.logger.Info("safe-stop transition complete",
 		zap.Duration("duration", duration),
@@ -190,6 +216,10 @@ func (a *agent) publishAuditEvent(trigger safety.Trigger) {
 }
 
 func (a *agent) sendStateNotification(haltErr error) {
+	if a.transport == nil {
+		return
+	}
+
 	robotState := protocol.RobotStateSafeStop
 	sessionState := "safe_stop"
 	if haltErr != nil {
@@ -221,4 +251,9 @@ func (a *agent) currentSessionID() string {
 		return info.SessionID
 	}
 	return ""
+}
+
+// RevocationMetrics returns the revocation metrics collector for reporting.
+func (a *agent) RevocationMetrics() *metrics.RevocationCollector {
+	return a.revocationMetrics
 }
