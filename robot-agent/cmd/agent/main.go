@@ -11,6 +11,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/datapilot/chainkvm/robot-agent/config"
+	"github.com/datapilot/chainkvm/robot-agent/internal/audit"
 	"github.com/datapilot/chainkvm/robot-agent/internal/control"
 	"github.com/datapilot/chainkvm/robot-agent/internal/safety"
 	"github.com/datapilot/chainkvm/robot-agent/internal/session"
@@ -46,7 +47,8 @@ type agent struct {
 	signaling  *session.SignalingClient
 	transport  *transport.WebRTC
 	safety     *safety.Monitor
-	handler *control.Handler
+	handler    *control.Handler
+	audit      *audit.Publisher
 }
 
 func newAgent(cfg *config.Config, logger *zap.Logger) *agent {
@@ -95,7 +97,7 @@ func (a *agent) initComponents() {
 
 	robotAPI := control.NewStubRobotAPI(a.logger)
 	staleThreshold := 200 * time.Millisecond
-	a.handler = control.NewHandler(robotAPI, a.safety, a.sessionMgr, staleThreshold)
+	a.handler = control.NewHandler(robotAPI, a.safety, a.sessionMgr, a.sessionMgr, staleThreshold)
 
 	iceConfig := transport.ICEConfig{
 		STUNServers: a.cfg.STUNServers,
@@ -104,6 +106,9 @@ func (a *agent) initComponents() {
 	a.transport = transport.NewWebRTC(iceConfig, a.logger)
 	a.signaling = session.NewSignalingClient(a.cfg.GatewayWSURL, a.cfg.RobotID, a.logger)
 	a.signaling.SetHandler(a)
+
+	// Initialize audit publisher
+	a.audit = audit.NewPublisher(a.cfg.GatewayHTTPURL, a.cfg.RobotID)
 
 	a.logger.Info("components initialized")
 }

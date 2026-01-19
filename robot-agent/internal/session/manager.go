@@ -73,6 +73,13 @@ func (m *Manager) State() State {
 	return m.state
 }
 
+// IsActive returns true if the session is active (not pending or terminated).
+func (m *Manager) IsActive() bool {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.state == StateActive
+}
+
 // Info returns the current session info, or nil if no session.
 func (m *Manager) Info() *Info {
 	m.mu.RLock()

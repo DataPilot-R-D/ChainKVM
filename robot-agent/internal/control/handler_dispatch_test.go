@@ -10,7 +10,7 @@ import (
 
 func TestHandler_HandleMessage_Dispatch(t *testing.T) {
 	robot := &mockRobotAPI{}
-	h := NewHandler(robot, nil, nil, 500*time.Millisecond)
+	h := NewHandler(robot, nil, nil, nil, 500*time.Millisecond)
 	now := time.Now().UnixMilli()
 
 	tests := []struct {
@@ -75,7 +75,7 @@ func TestHandler_HandleMessage_Dispatch(t *testing.T) {
 
 func TestHandler_HandleMessage_InvalidJSON(t *testing.T) {
 	robot := &mockRobotAPI{}
-	h := NewHandler(robot, nil, nil, 500*time.Millisecond)
+	h := NewHandler(robot, nil, nil, nil, 500*time.Millisecond)
 
 	_, err := h.HandleMessage([]byte("not json"))
 	if err == nil {
@@ -85,7 +85,7 @@ func TestHandler_HandleMessage_InvalidJSON(t *testing.T) {
 
 func TestHandler_HandleMessage_UnknownType(t *testing.T) {
 	robot := &mockRobotAPI{}
-	h := NewHandler(robot, nil, nil, 500*time.Millisecond)
+	h := NewHandler(robot, nil, nil, nil, 500*time.Millisecond)
 
 	data := []byte(`{"type": "unknown_type"}`)
 	_, err := h.HandleMessage(data)
@@ -96,7 +96,7 @@ func TestHandler_HandleMessage_UnknownType(t *testing.T) {
 
 func TestHandler_HandleMessage_PingIgnored(t *testing.T) {
 	robot := &mockRobotAPI{}
-	h := NewHandler(robot, nil, nil, 500*time.Millisecond)
+	h := NewHandler(robot, nil, nil, nil, 500*time.Millisecond)
 
 	data := []byte(`{"type": "ping", "seq": 1, "t_mono": 12345}`)
 	ack, err := h.HandleMessage(data)
@@ -110,7 +110,7 @@ func TestHandler_HandleMessage_PingIgnored(t *testing.T) {
 
 func TestHandler_KVMKey_RobotError(t *testing.T) {
 	robot := &mockRobotAPI{shouldError: true}
-	h := NewHandler(robot, nil, nil, 500*time.Millisecond)
+	h := NewHandler(robot, nil, nil, nil, 500*time.Millisecond)
 	now := time.Now().UnixMilli()
 
 	msg := &protocol.KVMKeyMessage{
@@ -128,7 +128,7 @@ func TestHandler_KVMKey_RobotError(t *testing.T) {
 
 func TestHandler_KVMMouse_RobotError(t *testing.T) {
 	robot := &mockRobotAPI{shouldError: true}
-	h := NewHandler(robot, nil, nil, 500*time.Millisecond)
+	h := NewHandler(robot, nil, nil, nil, 500*time.Millisecond)
 	now := time.Now().UnixMilli()
 
 	msg := &protocol.KVMMouseMessage{
@@ -146,7 +146,7 @@ func TestHandler_KVMMouse_RobotError(t *testing.T) {
 
 func TestHandler_ValidationFailure(t *testing.T) {
 	robot := &mockRobotAPI{}
-	h := NewHandler(robot, nil, nil, 500*time.Millisecond)
+	h := NewHandler(robot, nil, nil, nil, 500*time.Millisecond)
 
 	msg := &protocol.DriveMessage{
 		Type: protocol.TypeDrive,

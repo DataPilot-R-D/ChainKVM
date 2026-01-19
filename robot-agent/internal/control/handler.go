@@ -15,6 +15,7 @@ var (
 	ErrUnknownType      = errors.New("unknown message type")
 	ErrInvalidJSON      = errors.New("invalid JSON message")
 	ErrScopeNotAllowed  = errors.New("operation not permitted by scope")
+	ErrSessionRevoked   = errors.New("session has been revoked")
 )
 
 // Scope constants for authorization.
@@ -43,11 +44,17 @@ type ScopeChecker interface {
 	HasScope(scope string) bool
 }
 
+// SessionChecker checks if the session is still active.
+type SessionChecker interface {
+	IsActive() bool
+}
+
 // Handler processes control messages and dispatches to robot API.
 type Handler struct {
 	robot     RobotAPI
 	safety    SafetyCallback
 	scopes    ScopeChecker
+	session   SessionChecker
 	validator *Validator
 }
 
@@ -56,12 +63,14 @@ func NewHandler(
 	robot RobotAPI,
 	safety SafetyCallback,
 	scopes ScopeChecker,
+	session SessionChecker,
 	staleThreshold time.Duration,
 ) *Handler {
 	return &Handler{
 		robot:     robot,
 		safety:    safety,
 		scopes:    scopes,
+		session:   session,
 		validator: NewValidator(staleThreshold),
 	}
 }
@@ -72,6 +81,11 @@ func (h *Handler) HandleMessage(data []byte) (*protocol.AckMessage, error) {
 	if err := json.Unmarshal(data, &base); err != nil {
 		h.notifyInvalid()
 		return nil, ErrInvalidJSON
+	}
+
+	// Check if session is still active (reject commands from revoked sessions)
+	if !h.isSessionActive() {
+		return nil, ErrSessionRevoked
 	}
 
 	var err error
@@ -227,4 +241,12 @@ func (h *Handler) hasScope(scope string) bool {
 		return true // No scope checker = allow all (for testing)
 	}
 	return h.scopes.HasScope(scope)
+}
+
+// isSessionActive checks if the session is still active.
+func (h *Handler) isSessionActive() bool {
+	if h.session == nil {
+		return true // No session checker = allow all (for testing)
+	}
+	return h.session.IsActive()
 }

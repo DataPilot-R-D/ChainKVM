@@ -37,7 +37,7 @@ func (m *mockSafetyCallback) OnEStop() {
 func TestHandler_SafetyCallbacks(t *testing.T) {
 	robot := &mockRobotAPI{}
 	safety := &mockSafetyCallback{}
-	h := NewHandler(robot, safety, nil, 500*time.Millisecond)
+	h := NewHandler(robot, safety, nil, nil, 500*time.Millisecond)
 	now := time.Now().UnixMilli()
 
 	// Valid command should trigger OnValidControl
@@ -64,7 +64,7 @@ func TestHandler_SafetyCallbacks(t *testing.T) {
 func TestHandler_EStopWithSafety(t *testing.T) {
 	robot := &mockRobotAPI{}
 	safety := &mockSafetyCallback{}
-	h := NewHandler(robot, safety, nil, 500*time.Millisecond)
+	h := NewHandler(robot, safety, nil, nil, 500*time.Millisecond)
 	now := time.Now().UnixMilli()
 
 	msg := &protocol.EStopMessage{Type: protocol.TypeEStop, T: now}
@@ -81,7 +81,7 @@ func TestHandler_EStopWithSafety(t *testing.T) {
 func TestHandler_KVMKey_ValidationFailure(t *testing.T) {
 	robot := &mockRobotAPI{}
 	safety := &mockSafetyCallback{}
-	h := NewHandler(robot, safety, nil, 500*time.Millisecond)
+	h := NewHandler(robot, safety, nil, nil, 500*time.Millisecond)
 	now := time.Now().UnixMilli()
 
 	// Invalid action
@@ -104,7 +104,7 @@ func TestHandler_KVMKey_ValidationFailure(t *testing.T) {
 func TestHandler_KVMMouse_ValidationFailure(t *testing.T) {
 	robot := &mockRobotAPI{}
 	safety := &mockSafetyCallback{}
-	h := NewHandler(robot, safety, nil, 500*time.Millisecond)
+	h := NewHandler(robot, safety, nil, nil, 500*time.Millisecond)
 
 	// Stale command
 	msg := &protocol.KVMMouseMessage{
