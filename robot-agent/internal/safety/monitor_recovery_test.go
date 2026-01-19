@@ -80,95 +80,41 @@ func TestMonitor_MultipleLossRecoveryCycles(t *testing.T) {
 	}
 }
 
-func TestMonitor_EStopNotRecoverable(t *testing.T) {
-	triggerCount := 0
-	var mu sync.Mutex
-
-	m := NewMonitor(500*time.Millisecond, 10, func(trig Trigger) {
-		mu.Lock()
-		triggerCount++
-		mu.Unlock()
-	})
-
-	// E-Stop trigger
-	m.OnEStop()
-	time.Sleep(10 * time.Millisecond)
-
-	// Try to recover with valid control
-	m.OnValidControl()
-
-	// Try to trigger again
-	m.OnEStop()
-	time.Sleep(10 * time.Millisecond)
-
-	mu.Lock()
-	count := triggerCount
-	mu.Unlock()
-
-	// E-Stop is not recoverable (unlike control loss)
-	if count != 1 {
-		t.Errorf("e-stop should not be recoverable, expected 1 trigger, got %d", count)
+func TestMonitor_NonRecoverableTriggers(t *testing.T) {
+	tests := []struct {
+		name    string
+		trigger func(m *Monitor)
+	}{
+		{"EStop", func(m *Monitor) { m.OnEStop() }},
+		{"Revoked", func(m *Monitor) { m.OnRevoked() }},
+		{"TokenExpired", func(m *Monitor) { m.OnTokenExpired() }},
 	}
-}
 
-func TestMonitor_RevokedNotRecoverable(t *testing.T) {
-	triggerCount := 0
-	var mu sync.Mutex
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			triggerCount := 0
+			var mu sync.Mutex
 
-	m := NewMonitor(500*time.Millisecond, 10, func(trig Trigger) {
-		mu.Lock()
-		triggerCount++
-		mu.Unlock()
-	})
+			m := NewMonitor(500*time.Millisecond, 10, func(trig Trigger) {
+				mu.Lock()
+				triggerCount++
+				mu.Unlock()
+			})
 
-	// Revoked trigger
-	m.OnRevoked()
-	time.Sleep(10 * time.Millisecond)
+			tt.trigger(m)
+			time.Sleep(10 * time.Millisecond)
 
-	// Try to recover with valid control
-	m.OnValidControl()
+			m.OnValidControl()
+			tt.trigger(m)
+			time.Sleep(10 * time.Millisecond)
 
-	// Try to trigger again
-	m.OnRevoked()
-	time.Sleep(10 * time.Millisecond)
+			mu.Lock()
+			count := triggerCount
+			mu.Unlock()
 
-	mu.Lock()
-	count := triggerCount
-	mu.Unlock()
-
-	// Revoked is not recoverable
-	if count != 1 {
-		t.Errorf("revoked should not be recoverable, expected 1 trigger, got %d", count)
-	}
-}
-
-func TestMonitor_TokenExpiredNotRecoverable(t *testing.T) {
-	triggerCount := 0
-	var mu sync.Mutex
-
-	m := NewMonitor(500*time.Millisecond, 10, func(trig Trigger) {
-		mu.Lock()
-		triggerCount++
-		mu.Unlock()
-	})
-
-	// TokenExpired trigger
-	m.OnTokenExpired()
-	time.Sleep(10 * time.Millisecond)
-
-	// Try to recover with valid control
-	m.OnValidControl()
-
-	// Try to trigger again
-	m.OnTokenExpired()
-	time.Sleep(10 * time.Millisecond)
-
-	mu.Lock()
-	count := triggerCount
-	mu.Unlock()
-
-	// TokenExpired is not recoverable
-	if count != 1 {
-		t.Errorf("token expired should not be recoverable, expected 1 trigger, got %d", count)
+			if count != 1 {
+				t.Errorf("%s should not be recoverable, expected 1 trigger, got %d", tt.name, count)
+			}
+		})
 	}
 }

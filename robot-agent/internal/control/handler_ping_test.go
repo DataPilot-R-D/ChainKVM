@@ -8,22 +8,11 @@ import (
 	"github.com/datapilot/chainkvm/robot-agent/pkg/protocol"
 )
 
-// mockSafetyForPing tracks OnValidControl calls for ping testing.
-type mockSafetyForPing struct {
-	validControlCalls int
-}
-
-func (m *mockSafetyForPing) OnValidControl()   { m.validControlCalls++ }
-func (m *mockSafetyForPing) OnInvalidCommand() {}
-func (m *mockSafetyForPing) OnEStop()          {}
-
 func TestHandler_Ping_ResetsControlLossTimer(t *testing.T) {
 	robot := &mockRobotAPI{}
-	safety := &mockSafetyForPing{}
-
+	safety := &mockSafetyCallback{}
 	handler := NewHandler(robot, safety, nil, nil, 200*time.Millisecond)
 
-	// Create a ping message
 	ping := protocol.PingMessage{
 		Type:  protocol.TypePing,
 		Seq:   1,
@@ -34,7 +23,6 @@ func TestHandler_Ping_ResetsControlLossTimer(t *testing.T) {
 		t.Fatalf("failed to marshal ping: %v", err)
 	}
 
-	// Handle the ping
 	ack, err := handler.HandleMessage(data)
 	if err != nil {
 		t.Errorf("expected no error, got: %v", err)
@@ -43,19 +31,16 @@ func TestHandler_Ping_ResetsControlLossTimer(t *testing.T) {
 		t.Errorf("expected nil ack for ping, got: %v", ack)
 	}
 
-	// Verify OnValidControl was called (heartbeat resets timer)
-	if safety.validControlCalls != 1 {
-		t.Errorf("expected 1 OnValidControl call, got %d", safety.validControlCalls)
+	if safety.validCount != 1 {
+		t.Errorf("expected 1 OnValidControl call, got %d", safety.validCount)
 	}
 }
 
 func TestHandler_Ping_MultiplePingsResetTimer(t *testing.T) {
 	robot := &mockRobotAPI{}
-	safety := &mockSafetyForPing{}
-
+	safety := &mockSafetyCallback{}
 	handler := NewHandler(robot, safety, nil, nil, 200*time.Millisecond)
 
-	// Send multiple pings
 	for i := 0; i < 5; i++ {
 		ping := protocol.PingMessage{
 			Type:  protocol.TypePing,
@@ -66,9 +51,8 @@ func TestHandler_Ping_MultiplePingsResetTimer(t *testing.T) {
 		handler.HandleMessage(data)
 	}
 
-	// Each ping should call OnValidControl
-	if safety.validControlCalls != 5 {
-		t.Errorf("expected 5 OnValidControl calls, got %d", safety.validControlCalls)
+	if safety.validCount != 5 {
+		t.Errorf("expected 5 OnValidControl calls, got %d", safety.validCount)
 	}
 }
 
