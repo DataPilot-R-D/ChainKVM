@@ -21,6 +21,7 @@ export interface UseWebRTCOptions {
   signaling: SignalingCallbacks;
   enabled?: boolean;
   reconnect?: ReconnectConfig;
+  isRevoked?: boolean;
   onTrack?: (track: MediaStreamTrack, stream: MediaStream) => void;
   onReconnectFailed?: () => void;
   onIceGatheringComplete?: () => void;
@@ -52,6 +53,7 @@ export function useWebRTC({
   signaling,
   enabled = true,
   reconnect,
+  isRevoked = false,
   onTrack,
   onReconnectFailed,
   onIceGatheringComplete,
@@ -145,8 +147,18 @@ export function useWebRTC({
     };
   }, [enabled, config.iceServers, signaling, onTrack, reconnect?.enabled, onIceGatheringComplete]);
 
+  // Clear reconnection attempts when revoked
+  useEffect(() => {
+    if (isRevoked && reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+  }, [isRevoked]);
+
   // Schedule reconnection attempt
   const scheduleReconnect = useCallback(() => {
+    // Never reconnect after revocation
+    if (isRevoked) return;
     if (!reconnect?.enabled) return;
 
     // Use ref to avoid stale closure issues
@@ -156,6 +168,9 @@ export function useWebRTC({
     }
 
     reconnectTimeoutRef.current = setTimeout(() => {
+      // Check revocation again before attempting
+      if (isRevoked) return;
+
       reconnectAttemptsRef.current += 1;
       const newAttempts = reconnectAttemptsRef.current;
       setReconnectAttempts(newAttempts);
@@ -171,7 +186,7 @@ export function useWebRTC({
         scheduleReconnect();
       }
     }, reconnect.delayMs);
-  }, [reconnect, onReconnectFailed]);
+  }, [reconnect, onReconnectFailed, isRevoked]);
 
   // Create and send offer
   const createOffer = useCallback(async () => {
