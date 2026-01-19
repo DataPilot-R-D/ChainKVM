@@ -3,51 +3,10 @@ package control
 
 import (
 	"encoding/json"
-	"errors"
 	"time"
 
 	"github.com/datapilot/chainkvm/robot-agent/pkg/protocol"
 )
-
-// Error types.
-var (
-	ErrRobotUnavailable = errors.New("robot API unavailable")
-	ErrUnknownType      = errors.New("unknown message type")
-	ErrInvalidJSON      = errors.New("invalid JSON message")
-	ErrScopeNotAllowed  = errors.New("operation not permitted by scope")
-	ErrSessionRevoked   = errors.New("session has been revoked")
-)
-
-// Scope constants for authorization.
-const (
-	ScopeControl = "teleop:control"
-	ScopeEStop   = "teleop:estop"
-)
-
-// RobotAPI defines the interface for robot control operations.
-type RobotAPI interface {
-	Drive(v, w float64) error
-	SendKey(key, action string, modifiers []string) error
-	SendMouse(dx, dy, buttons, scroll int) error
-	EStop() error
-}
-
-// SafetyCallback is called when safety events occur.
-type SafetyCallback interface {
-	OnValidControl()
-	OnInvalidCommand()
-	OnEStop()
-}
-
-// ScopeChecker checks if a scope is allowed for the current session.
-type ScopeChecker interface {
-	HasScope(scope string) bool
-}
-
-// SessionChecker checks if the session is still active.
-type SessionChecker interface {
-	IsActive() bool
-}
 
 // Handler processes control messages and dispatches to robot API.
 type Handler struct {

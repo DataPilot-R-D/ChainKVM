@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 )
@@ -58,8 +59,13 @@ func (p *Publisher) SetHTTPClient(client HTTPClient) {
 }
 
 // Publish sends an audit event to the gateway (async, fire-and-forget).
+// Errors are logged but not returned since this is non-blocking.
 func (p *Publisher) Publish(event Event) {
-	go p.publishAsync(event)
+	go func() {
+		if err := p.publishAsync(event); err != nil {
+			log.Printf("audit: failed to publish event %s: %v", event.EventType, err)
+		}
+	}()
 }
 
 // PublishSync sends an audit event synchronously (for testing).
