@@ -134,6 +134,13 @@ func (e *SoftwareEncoder) Encode(frame *Frame) (*EncodedFrame, error) {
 	}
 	e.mu.Unlock()
 
+	// Overlay timestamp for latency measurement (M6-003)
+	if err := OverlayTimestamp(frame); err != nil {
+		// Log warning but don't fail encoding - overlay is optional for measurement
+		// In production, this would use proper logging
+		_ = err // Suppress unused error for POC
+	}
+
 	// Simulate encoding - in production, use actual codec library
 	// For POC, we compress by simple placeholder encoding
 	encoded := simulateEncode(frame.Data, isKeyframe)
