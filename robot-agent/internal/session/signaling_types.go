@@ -10,12 +10,13 @@ import (
 type SignalType string
 
 const (
-	SignalJoin   SignalType = "join"
-	SignalOffer  SignalType = "offer"
-	SignalAnswer SignalType = "answer"
-	SignalICE    SignalType = "ice"
-	SignalBye    SignalType = "bye"
-	SignalError  SignalType = "error"
+	SignalJoin    SignalType = "join"
+	SignalOffer   SignalType = "offer"
+	SignalAnswer  SignalType = "answer"
+	SignalICE     SignalType = "ice"
+	SignalBye     SignalType = "bye"
+	SignalError   SignalType = "error"
+	SignalRevoked SignalType = "revoked"
 )
 
 // SignalMessage is the signaling protocol message.
@@ -26,6 +27,7 @@ type SignalMessage struct {
 	Token     string          `json:"token,omitempty"`
 	Payload   json.RawMessage `json:"payload,omitempty"`
 	Error     string          `json:"error,omitempty"`
+	Reason    string          `json:"reason,omitempty"`
 }
 
 // Error definitions for signaling.
@@ -40,4 +42,5 @@ type SignalingHandler interface {
 	OnAnswer(sessionID string, sdp []byte)
 	OnICE(sessionID string, candidate []byte)
 	OnBye(sessionID string)
+	OnRevoked(sessionID, reason string)
 }

@@ -179,6 +179,8 @@ func (c *SignalingClient) handleMessage(msg SignalMessage) {
 		handler.OnICE(msg.SessionID, msg.Payload)
 	case SignalBye:
 		handler.OnBye(msg.SessionID)
+	case SignalRevoked:
+		handler.OnRevoked(msg.SessionID, msg.Reason)
 	case SignalError:
 		c.logger.Error("signaling error", zap.String("error", msg.Error))
 	}

@@ -187,14 +187,36 @@ export async function signalingRoutes(app: FastifyInstance): Promise<void> {
   });
 }
 
+const TEARDOWN_SLA_MS = 500;
+
 export function notifyRevocation(sessionId: string, reason: string): void {
+  const startTime = Date.now();
+
   broadcast(sessionId, { type: 'revoked', session_id: sessionId, reason });
 
   const room = rooms.get(sessionId);
-  if (!room) return;
+  const peerCount = room?.size || 0;
 
-  for (const peer of room.values()) {
-    peer.ws.close(1000, 'Session revoked');
+  if (room) {
+    for (const peer of room.values()) {
+      peer.ws.close(1000, 'Session revoked');
+    }
+    rooms.delete(sessionId);
   }
-  rooms.delete(sessionId);
+
+  const teardownMs = Date.now() - startTime;
+
+  // Log teardown audit event
+  console.info('[SIGNALING] Session teardown', {
+    sessionId,
+    reason,
+    peerCount,
+    teardownMs,
+    timestamp: new Date().toISOString(),
+  });
+
+  // Warn if SLA exceeded
+  if (teardownMs > TEARDOWN_SLA_MS) {
+    console.warn('[SIGNALING] Teardown exceeded %dms SLA: %dms', TEARDOWN_SLA_MS, teardownMs);
+  }
 }

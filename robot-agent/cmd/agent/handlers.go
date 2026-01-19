@@ -84,6 +84,24 @@ func (a *agent) OnBye(sessionID string) {
 	a.safety.OnRevoked()
 }
 
+// OnRevoked handles session revocation from gateway.
+func (a *agent) OnRevoked(sessionID, reason string) {
+	a.logger.Warn("session revoked",
+		zap.String("session_id", sessionID),
+		zap.String("reason", reason))
+
+	// Close WebRTC transport to stop media and control
+	if a.transport != nil {
+		a.transport.Close()
+	}
+
+	// Terminate session (invalidates token cache)
+	a.sessionMgr.Terminate()
+
+	// Trigger safe-stop
+	a.safety.OnRevoked()
+}
+
 func (a *agent) onDataMessage(data []byte) {
 	ack, err := a.handler.HandleMessage(data)
 	if err != nil {
