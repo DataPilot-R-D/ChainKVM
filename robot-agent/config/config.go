@@ -71,43 +71,21 @@ func Load() (*Config, error) {
 		cfg.GatewayHTTPURL = deriveHTTPURL(cfg.GatewayWSURL)
 	}
 
-	// Optional overrides
+	// Optional string overrides
 	if v := os.Getenv("CAMERA_DEVICE"); v != "" {
 		cfg.CameraDevice = v
 	}
 	if v := os.Getenv("VIDEO_CODEC"); v != "" {
 		cfg.VideoCodec = v
 	}
-	if v := os.Getenv("VIDEO_BITRATE"); v != "" {
-		if i, err := strconv.Atoi(v); err == nil {
-			cfg.VideoBitrate = i
-		}
-	}
-	if v := os.Getenv("VIDEO_FPS"); v != "" {
-		if i, err := strconv.Atoi(v); err == nil {
-			cfg.VideoFPS = i
-		}
-	}
-	if v := os.Getenv("CONTROL_LOSS_TIMEOUT_MS"); v != "" {
-		if i, err := strconv.Atoi(v); err == nil {
-			cfg.ControlLossTimeoutMS = i
-		}
-	}
-	if v := os.Getenv("RATE_LIMIT_DRIVE_HZ"); v != "" {
-		if i, err := strconv.Atoi(v); err == nil {
-			cfg.RateLimitDriveHz = i
-		}
-	}
-	if v := os.Getenv("RATE_LIMIT_KVM_HZ"); v != "" {
-		if i, err := strconv.Atoi(v); err == nil {
-			cfg.RateLimitKVMHz = i
-		}
-	}
-	if v := os.Getenv("INVALID_CMD_THRESHOLD"); v != "" {
-		if i, err := strconv.Atoi(v); err == nil {
-			cfg.InvalidCmdThreshold = i
-		}
-	}
+
+	// Optional int overrides
+	cfg.VideoBitrate = envInt("VIDEO_BITRATE", cfg.VideoBitrate)
+	cfg.VideoFPS = envInt("VIDEO_FPS", cfg.VideoFPS)
+	cfg.ControlLossTimeoutMS = envInt("CONTROL_LOSS_TIMEOUT_MS", cfg.ControlLossTimeoutMS)
+	cfg.RateLimitDriveHz = envInt("RATE_LIMIT_DRIVE_HZ", cfg.RateLimitDriveHz)
+	cfg.RateLimitKVMHz = envInt("RATE_LIMIT_KVM_HZ", cfg.RateLimitKVMHz)
+	cfg.InvalidCmdThreshold = envInt("INVALID_CMD_THRESHOLD", cfg.InvalidCmdThreshold)
 
 	// ICE servers
 	if v := os.Getenv("STUN_SERVERS"); v != "" {
@@ -120,17 +98,27 @@ func Load() (*Config, error) {
 	return cfg, nil
 }
 
+// envInt returns the env var as int, or the default if unset or invalid.
+func envInt(key string, defaultVal int) int {
+	if v := os.Getenv(key); v != "" {
+		if i, err := strconv.Atoi(v); err == nil {
+			return i
+		}
+	}
+	return defaultVal
+}
+
 // deriveHTTPURL converts ws://host:port/path to http://host:port.
 func deriveHTTPURL(wsURL string) string {
-	url := wsURL
-	if strings.HasPrefix(url, "wss://") {
-		url = "https://" + strings.TrimPrefix(url, "wss://")
-	} else if strings.HasPrefix(url, "ws://") {
-		url = "http://" + strings.TrimPrefix(url, "ws://")
-	}
+	httpURL := strings.Replace(wsURL, "wss://", "https://", 1)
+	httpURL = strings.Replace(httpURL, "ws://", "http://", 1)
+
 	// Remove path component (e.g., /v1/signal)
-	if idx := strings.Index(url[8:], "/"); idx != -1 {
-		url = url[:8+idx]
+	if schemeEnd := strings.Index(httpURL, "://"); schemeEnd != -1 {
+		hostStart := schemeEnd + 3
+		if pathIdx := strings.Index(httpURL[hostStart:], "/"); pathIdx != -1 {
+			return httpURL[:hostStart+pathIdx]
+		}
 	}
-	return url
+	return httpURL
 }

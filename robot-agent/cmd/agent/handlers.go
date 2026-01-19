@@ -39,14 +39,12 @@ func (a *agent) OnOffer(sessionID, token string, sdpData []byte) {
 
 	a.transport.SetDataHandler(a.onDataMessage)
 
-	// Store validated session info for activation on connection
-	validatedInfo := info
 	a.transport.SetStateCallback(func(state webrtc.PeerConnectionState) {
 		switch state {
 		case webrtc.PeerConnectionStateConnected:
-			if err := a.sessionMgr.Activate(validatedInfo); err != nil {
+			if err := a.sessionMgr.Activate(info); err != nil {
 				a.logger.Error("session activation failed",
-					zap.String("session_id", validatedInfo.SessionID),
+					zap.String("session_id", info.SessionID),
 					zap.Error(err))
 				return
 			}

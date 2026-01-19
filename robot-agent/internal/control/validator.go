@@ -45,15 +45,6 @@ func NewValidator(staleThreshold time.Duration) *Validator {
 
 // ValidateDrive validates a drive command message.
 func (v *Validator) ValidateDrive(msg *protocol.DriveMessage) error {
-	// Check timestamp
-	if msg.T == 0 {
-		return &ValidationError{
-			Code:    ErrInvalidTimestamp,
-			Message: "timestamp is required",
-			Field:   "t",
-		}
-	}
-
 	if err := v.checkStale(msg.T); err != nil {
 		return err
 	}

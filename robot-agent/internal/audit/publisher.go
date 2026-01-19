@@ -35,12 +35,13 @@ type HTTPClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
+const defaultTimeout = 5 * time.Second
+
 // Publisher publishes audit events to the gateway.
 type Publisher struct {
 	gatewayURL string
 	robotID    string
 	client     HTTPClient
-	timeout    time.Duration
 }
 
 // NewPublisher creates a new audit event publisher.
@@ -48,8 +49,7 @@ func NewPublisher(gatewayURL, robotID string) *Publisher {
 	return &Publisher{
 		gatewayURL: gatewayURL,
 		robotID:    robotID,
-		client:     &http.Client{Timeout: 5 * time.Second},
-		timeout:    5 * time.Second,
+		client:     &http.Client{Timeout: defaultTimeout},
 	}
 }
 
@@ -74,7 +74,6 @@ func (p *Publisher) PublishSync(event Event) error {
 }
 
 func (p *Publisher) publishAsync(event Event) error {
-	// Ensure robot ID is set
 	if event.RobotID == "" {
 		event.RobotID = p.robotID
 	}
@@ -84,7 +83,7 @@ func (p *Publisher) publishAsync(event Event) error {
 		return fmt.Errorf("marshal event: %w", err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), p.timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 
 	url := fmt.Sprintf("%s/v1/audit", p.gatewayURL)
