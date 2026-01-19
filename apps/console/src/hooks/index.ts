@@ -26,3 +26,12 @@ export type {
   UseConnectionStatsOptions,
   UseConnectionStatsReturn,
 } from './useConnectionStats';
+
+export { useSignaling } from './useSignaling';
+export type {
+  SignalingMessage,
+  SignalingMessageType,
+  ConnectionStatus,
+  UseSignalingOptions,
+  UseSignalingReturn,
+} from './useSignaling';
