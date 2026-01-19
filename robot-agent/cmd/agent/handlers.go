@@ -135,15 +135,9 @@ func (a *agent) onSafeStop(trigger safety.Trigger) {
 
 	// Emit audit event for invalid command threshold
 	if trigger == safety.TriggerInvalidCmds && a.audit != nil {
-		sessionID := ""
-		if a.sessionMgr != nil {
-			if info := a.sessionMgr.Info(); info != nil {
-				sessionID = info.SessionID
-			}
-		}
 		a.audit.Publish(audit.Event{
 			EventType: audit.EventInvalidCommandThreshold,
-			SessionID: sessionID,
+			SessionID: a.currentSessionID(),
 			Timestamp: time.Now().UTC(),
 			Metadata:  map[string]string{"trigger": string(trigger)},
 		})
@@ -163,4 +157,15 @@ func (a *agent) onSafeStop(trigger safety.Trigger) {
 	if err := a.transport.SendData(data); err != nil {
 		a.logger.Warn("failed to send safe-stop state", zap.Error(err))
 	}
+}
+
+func (a *agent) currentSessionID() string {
+	if a.sessionMgr == nil {
+		return ""
+	}
+	info := a.sessionMgr.Info()
+	if info == nil {
+		return ""
+	}
+	return info.SessionID
 }

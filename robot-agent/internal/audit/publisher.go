@@ -16,8 +16,8 @@ type EventType string
 
 // Event types.
 const (
-	EventSessionRevoked         EventType = "SESSION_REVOKED"
-	EventSessionEnded           EventType = "SESSION_ENDED"
+	EventSessionRevoked          EventType = "SESSION_REVOKED"
+	EventSessionEnded            EventType = "SESSION_ENDED"
 	EventInvalidCommandThreshold EventType = "INVALID_COMMAND_THRESHOLD"
 )
 
