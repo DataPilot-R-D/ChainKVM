@@ -105,11 +105,14 @@ When referencing PRD sections in task files:
 **After creating a PR, you MUST:**
 1. Run `/pr-review-toolkit:review-pr` to perform automated code review
 2. Address any issues found by the review
-3. If review passes, proceed to merge
-4. If review fails, fix issues and re-run review
+3. Run `/pr-review-toolkit:review-pr simplify` to simplify the code
+4. Commit any simplifications made
+5. If review passes, proceed to merge
+6. If review fails, fix issues and re-run review
 
 **Task is NOT complete until:**
 - [ ] Automated PR review passes
+- [ ] Code simplification complete
 - [ ] PR is merged to main
 - [ ] Task file moved to `roadmap/done/`
 
@@ -141,10 +144,12 @@ When referencing PRD sections in task files:
    - [ ] Task-specific DoD checklist items completed
    - [ ] PR created
 
-   **Phase 2: Automated Review**
+   **Phase 2: Automated Review & Simplification**
    - [ ] Run `/pr-review-toolkit:review-pr`
    - [ ] All review checks pass
    - [ ] Fix any issues identified
+   - [ ] Run `/pr-review-toolkit:review-pr simplify`
+   - [ ] Commit simplifications
 
    **Phase 3: Completion**
    - [ ] PR merged to main
@@ -173,6 +178,11 @@ When referencing PRD sections in task files:
    # 4.5. Run automated PR review
    # Use: /pr-review-toolkit:review-pr
    # If issues found, fix them and re-run review
+
+   # 4.6. Run code simplification
+   # Use: /pr-review-toolkit:review-pr simplify
+   # Commit any simplifications made
+
    # If review passes, proceed to merge
 
    # 5. Merge and cleanup
