@@ -144,11 +144,6 @@ func (r MeasurementResult) WriteToFile(path string) error {
 
 // String returns a human-readable summary.
 func (r MeasurementResult) String() string {
-	status := "PASS"
-	if !r.Report.MeetsTarget {
-		status = "FAIL"
-	}
-
 	return fmt.Sprintf(`
 === Revocation Latency Measurement ===
 Profile: %s
@@ -157,48 +152,36 @@ Run Duration: %v
 
 %s
 Overall: %s
-`, r.Config.Profile, r.Config.Iterations, r.RunDuration, r.Report.String(), status)
+`, r.Config.Profile, r.Config.Iterations, r.RunDuration, r.Report.String(), statusStr(r.Report.MeetsTarget))
 }
 
 // CompareResults compares LAN and WAN results.
 func CompareResults(lan, wan MeasurementResult) string {
+	lanHeader := "LAN Results:"
+	wanHeader := fmt.Sprintf("WAN Results (RTT: %v):", wan.Config.SimulatedRTT)
+
 	return fmt.Sprintf(`
 === Revocation Latency Comparison ===
 
 %s
 %s
-%s
-`, formatProfileResults("LAN", lan), formatWANResults(wan), formatDelta(lan, wan))
-}
-
-func formatProfileResults(name string, r MeasurementResult) string {
-	targets := r.Config.Targets()
-	return fmt.Sprintf(`%s Results:
-  Total P50: %v
-  Total P95: %v (target: %v)
-  Safe-Stop Max: %v (target: %v)
-  Status: %s`,
-		name, r.Report.Total.P50, r.Report.Total.P95, targets.TotalP95,
-		r.Report.SafeStop.Max, targets.SafeStopMax, statusStr(r.Report.MeetsTarget))
-}
-
-func formatWANResults(r MeasurementResult) string {
-	targets := r.Config.Targets()
-	return fmt.Sprintf(`WAN Results (RTT: %v):
-  Total P50: %v
-  Total P95: %v (target: %v)
-  Safe-Stop Max: %v (target: %v)
-  Status: %s`,
-		r.Config.SimulatedRTT, r.Report.Total.P50, r.Report.Total.P95, targets.TotalP95,
-		r.Report.SafeStop.Max, targets.SafeStopMax, statusStr(r.Report.MeetsTarget))
-}
-
-func formatDelta(lan, wan MeasurementResult) string {
-	return fmt.Sprintf(`Latency Delta (WAN - LAN):
+Latency Delta (WAN - LAN):
   P50: +%v
-  P95: +%v`,
+  P95: +%v
+`, formatResults(lanHeader, lan), formatResults(wanHeader, wan),
 		wan.Report.Total.P50-lan.Report.Total.P50,
 		wan.Report.Total.P95-lan.Report.Total.P95)
+}
+
+func formatResults(header string, r MeasurementResult) string {
+	targets := r.Config.Targets()
+	return fmt.Sprintf(`%s
+  Total P50: %v
+  Total P95: %v (target: %v)
+  Safe-Stop Max: %v (target: %v)
+  Status: %s`,
+		header, r.Report.Total.P50, r.Report.Total.P95, targets.TotalP95,
+		r.Report.SafeStop.Max, targets.SafeStopMax, statusStr(r.Report.MeetsTarget))
 }
 
 func statusStr(pass bool) string {
