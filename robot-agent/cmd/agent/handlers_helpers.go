@@ -101,3 +101,8 @@ func (a *agent) completeSessionSetupMeasurement() {
 	a.sessionSetupMetrics.Record(*a.currentSessionSetup)
 	a.currentSessionSetup = nil
 }
+
+// ControlRTTMetrics returns the control RTT metrics collector.
+func (a *agent) ControlRTTMetrics() *metrics.ControlRTTCollector {
+	return a.controlRTTMetrics
+}

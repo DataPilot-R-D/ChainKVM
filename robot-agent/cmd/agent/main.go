@@ -49,11 +49,14 @@ type agent struct {
 	transport          *transport.WebRTC
 	safety             *safety.Monitor
 	handler            *control.Handler
-	audit              *audit.Publisher
+	audit               *audit.Publisher
 	revocationMetrics   *metrics.RevocationCollector
 	currentRevocation   *metrics.RevocationTimestamps
 	sessionSetupMetrics *metrics.SessionSetupCollector
 	currentSessionSetup *metrics.SessionSetupTimestamps
+	controlRTTMetrics   *metrics.ControlRTTCollector
+	pingTicker          *time.Ticker
+	pingInterval        time.Duration
 }
 
 func newAgent(cfg *config.Config, logger *zap.Logger) *agent {
@@ -119,6 +122,8 @@ func (a *agent) initComponents() {
 	// Initialize metrics collectors
 	a.revocationMetrics = metrics.NewRevocationCollector(100)
 	a.sessionSetupMetrics = metrics.NewSessionSetupCollector(100)
+	a.controlRTTMetrics = metrics.NewControlRTTCollector(1000)
+	a.pingInterval = 1 * time.Second
 
 	a.logger.Info("components initialized")
 }
@@ -157,6 +162,7 @@ func (a *agent) runSafetyMonitor(ctx context.Context) {
 func (a *agent) shutdown() error {
 	a.logger.Info("initiating graceful shutdown")
 
+	a.stopControlRTTMeasurement()
 	a.safety.OnRevoked()
 
 	if err := a.transport.Close(); err != nil {

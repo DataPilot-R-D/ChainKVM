@@ -12,6 +12,7 @@ import (
 	"github.com/datapilot/chainkvm/robot-agent/internal/audit"
 	"github.com/datapilot/chainkvm/robot-agent/internal/metrics"
 	"github.com/datapilot/chainkvm/robot-agent/internal/safety"
+	"github.com/datapilot/chainkvm/robot-agent/pkg/protocol"
 )
 
 // errHardwareUnavailable indicates the hardware stop could not be executed.
@@ -69,6 +70,7 @@ func (a *agent) OnOffer(sessionID, token string, sdpData []byte) {
 			})
 			a.completeSessionSetupMeasurement()
 			a.safety.Reset()
+			a.startControlRTTMeasurement()
 		case webrtc.PeerConnectionStateFailed, webrtc.PeerConnectionStateClosed:
 			a.sessionMgr.Terminate()
 		}
@@ -146,6 +148,21 @@ func (a *agent) OnRevoked(sessionID, reason string) {
 }
 
 func (a *agent) onDataMessage(data []byte) {
+	// Check if this is a pong message for RTT measurement
+	var base protocol.BaseMessage
+	if err := json.Unmarshal(data, &base); err == nil {
+		if base.Type == protocol.TypePong {
+			var pong protocol.PongMessage
+			if err := json.Unmarshal(data, &pong); err == nil {
+				if a.controlRTTMetrics != nil {
+					a.controlRTTMetrics.RecordPong(&pong)
+				}
+			}
+			return // Pong processed, don't pass to control handler
+		}
+	}
+
+	// Handle control messages
 	ack, err := a.handler.HandleMessage(data)
 	if err != nil {
 		a.logger.Debug("message handling error", zap.Error(err))
@@ -207,5 +224,41 @@ func (a *agent) executeHardwareStop(trigger safety.Trigger) error {
 		return err
 	}
 	return nil
+}
+
+func (a *agent) startControlRTTMeasurement() {
+	if a.controlRTTMetrics == nil {
+		return
+	}
+
+	a.pingTicker = time.NewTicker(a.pingInterval)
+	go func() {
+		for range a.pingTicker.C {
+			if a.transport == nil || a.sessionMgr.State() != "active" {
+				continue
+			}
+
+			ping := a.controlRTTMetrics.GeneratePing()
+			data, err := json.Marshal(ping)
+			if err != nil {
+				a.logger.Warn("failed to marshal ping", zap.Error(err))
+				continue
+			}
+
+			if err := a.transport.SendData(data); err != nil {
+				a.logger.Debug("failed to send ping", zap.Error(err))
+			}
+		}
+	}()
+
+	a.logger.Debug("control RTT measurement started", zap.Duration("interval", a.pingInterval))
+}
+
+func (a *agent) stopControlRTTMeasurement() {
+	if a.pingTicker != nil {
+		a.pingTicker.Stop()
+		a.pingTicker = nil
+		a.logger.Debug("control RTT measurement stopped")
+	}
 }
 
