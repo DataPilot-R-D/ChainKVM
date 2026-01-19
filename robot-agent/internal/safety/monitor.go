@@ -21,14 +21,15 @@ const (
 type Monitor struct {
 	mu sync.Mutex
 
-	controlLossTimeout time.Duration
+	controlLossTimeout  time.Duration
 	invalidCmdThreshold int
 
 	lastControlTime time.Time
 	invalidCmdCount int
 
-	safeStopFn func(trigger Trigger)
-	stopped    bool
+	safeStopFn    func(trigger Trigger)
+	stopped       bool
+	inControlLoss bool // tracks recoverable control loss state
 }
 
 // NewMonitor creates a new safety monitor.
@@ -46,12 +47,19 @@ func NewMonitor(
 }
 
 // OnValidControl should be called when a valid control message is received.
+// If in control loss state, this allows recovery.
 func (m *Monitor) OnValidControl() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	m.lastControlTime = time.Now()
 	m.invalidCmdCount = 0
+
+	// Recover from control loss on reconnection
+	if m.inControlLoss {
+		m.inControlLoss = false
+		m.stopped = false
+	}
 }
 
 // OnInvalidCommand should be called when an invalid command is received.
@@ -101,6 +109,7 @@ func (m *Monitor) CheckControlLoss() {
 
 	elapsed := time.Since(m.lastControlTime)
 	if elapsed > m.controlLossTimeout {
+		m.inControlLoss = true
 		m.triggerSafeStop(TriggerControlLoss)
 	}
 }
@@ -113,6 +122,7 @@ func (m *Monitor) Reset() {
 	m.invalidCmdCount = 0
 	m.lastControlTime = time.Now()
 	m.stopped = false
+	m.inControlLoss = false
 }
 
 // triggerSafeStop triggers safe-stop (must be called with lock held).

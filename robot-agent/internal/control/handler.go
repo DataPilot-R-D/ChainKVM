@@ -88,7 +88,8 @@ func (h *Handler) HandleMessage(data []byte) (*protocol.AckMessage, error) {
 		err = h.HandleEStop(&msg)
 
 	case protocol.TypePing:
-		// Ping is handled separately (not a control command)
+		// Ping acts as heartbeat - resets control loss timer
+		h.notifyValid()
 		return nil, nil
 
 	default:
