@@ -7,7 +7,7 @@ export interface RevocationState {
   reason: string;
 }
 
-export function App() {
+export function App(): JSX.Element {
   const [revocation, setRevocation] = useState<RevocationState>({
     isRevoked: false,
     reason: '',
@@ -37,6 +37,3 @@ export function App() {
     </>
   );
 }
-
-// Export for use with useSignaling hook
-export type { RevocationState };
