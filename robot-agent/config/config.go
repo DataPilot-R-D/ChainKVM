@@ -15,6 +15,7 @@ type Config struct {
 
 	// Gateway
 	GatewayWSURL   string
+	GatewayHTTPURL string
 	GatewayJWKSURL string
 
 	// Video
@@ -64,6 +65,12 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("GATEWAY_JWKS_URL is required")
 	}
 
+	// Gateway HTTP URL for audit events (optional, derived from WS URL)
+	cfg.GatewayHTTPURL = os.Getenv("GATEWAY_HTTP_URL")
+	if cfg.GatewayHTTPURL == "" {
+		cfg.GatewayHTTPURL = deriveHTTPURL(cfg.GatewayWSURL)
+	}
+
 	// Optional overrides
 	if v := os.Getenv("CAMERA_DEVICE"); v != "" {
 		cfg.CameraDevice = v
@@ -111,4 +118,19 @@ func Load() (*Config, error) {
 	}
 
 	return cfg, nil
+}
+
+// deriveHTTPURL converts ws://host:port/path to http://host:port.
+func deriveHTTPURL(wsURL string) string {
+	url := wsURL
+	if strings.HasPrefix(url, "wss://") {
+		url = "https://" + strings.TrimPrefix(url, "wss://")
+	} else if strings.HasPrefix(url, "ws://") {
+		url = "http://" + strings.TrimPrefix(url, "ws://")
+	}
+	// Remove path component (e.g., /v1/signal)
+	if idx := strings.Index(url[8:], "/"); idx != -1 {
+		url = url[:8+idx]
+	}
+	return url
 }

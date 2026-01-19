@@ -73,7 +73,7 @@ func (m *mockRobotAPI) EStop() error {
 
 func TestHandler_HandleDrive(t *testing.T) {
 	robot := &mockRobotAPI{}
-	h := NewHandler(robot, nil, nil, 500*time.Millisecond)
+	h := NewHandler(robot, nil, nil, nil, 500*time.Millisecond)
 	now := time.Now().UnixMilli()
 
 	msg := &protocol.DriveMessage{
@@ -100,7 +100,7 @@ func TestHandler_HandleDrive(t *testing.T) {
 
 func TestHandler_HandleKVMKey(t *testing.T) {
 	robot := &mockRobotAPI{}
-	h := NewHandler(robot, nil, nil, 500*time.Millisecond)
+	h := NewHandler(robot, nil, nil, nil, 500*time.Millisecond)
 	now := time.Now().UnixMilli()
 
 	msg := &protocol.KVMKeyMessage{
@@ -127,7 +127,7 @@ func TestHandler_HandleKVMKey(t *testing.T) {
 
 func TestHandler_HandleKVMMouse(t *testing.T) {
 	robot := &mockRobotAPI{}
-	h := NewHandler(robot, nil, nil, 500*time.Millisecond)
+	h := NewHandler(robot, nil, nil, nil, 500*time.Millisecond)
 	now := time.Now().UnixMilli()
 
 	msg := &protocol.KVMMouseMessage{
@@ -156,7 +156,7 @@ func TestHandler_HandleKVMMouse(t *testing.T) {
 
 func TestHandler_HandleEStop(t *testing.T) {
 	robot := &mockRobotAPI{}
-	h := NewHandler(robot, nil, nil, 500*time.Millisecond)
+	h := NewHandler(robot, nil, nil, nil, 500*time.Millisecond)
 	now := time.Now().UnixMilli()
 
 	msg := &protocol.EStopMessage{

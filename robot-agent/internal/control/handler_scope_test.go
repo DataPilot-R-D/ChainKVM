@@ -19,7 +19,7 @@ func (m *mockScopeChecker) HasScope(scope string) bool {
 func TestHandler_ScopeEnforcement_Drive(t *testing.T) {
 	robot := &mockRobotAPI{}
 	scopes := &mockScopeChecker{allowedScopes: map[string]bool{}}
-	h := NewHandler(robot, nil, scopes, 500*time.Millisecond)
+	h := NewHandler(robot, nil, scopes, nil, 500*time.Millisecond)
 	now := time.Now().UnixMilli()
 
 	msg := &protocol.DriveMessage{Type: protocol.TypeDrive, V: 0.5, W: 0.3, T: now}
@@ -41,7 +41,7 @@ func TestHandler_ScopeEnforcement_Drive(t *testing.T) {
 func TestHandler_ScopeEnforcement_KVMKey(t *testing.T) {
 	robot := &mockRobotAPI{}
 	scopes := &mockScopeChecker{allowedScopes: map[string]bool{}}
-	h := NewHandler(robot, nil, scopes, 500*time.Millisecond)
+	h := NewHandler(robot, nil, scopes, nil, 500*time.Millisecond)
 	now := time.Now().UnixMilli()
 
 	msg := &protocol.KVMKeyMessage{Type: protocol.TypeKVMKey, Key: "KeyA", Action: "down", T: now}
@@ -61,7 +61,7 @@ func TestHandler_ScopeEnforcement_KVMKey(t *testing.T) {
 func TestHandler_ScopeEnforcement_KVMMouse(t *testing.T) {
 	robot := &mockRobotAPI{}
 	scopes := &mockScopeChecker{allowedScopes: map[string]bool{}}
-	h := NewHandler(robot, nil, scopes, 500*time.Millisecond)
+	h := NewHandler(robot, nil, scopes, nil, 500*time.Millisecond)
 	now := time.Now().UnixMilli()
 
 	msg := &protocol.KVMMouseMessage{Type: protocol.TypeKVMMouse, DX: 10, DY: 5, T: now}
@@ -81,7 +81,7 @@ func TestHandler_ScopeEnforcement_KVMMouse(t *testing.T) {
 func TestHandler_ScopeEnforcement_EStop_AlwaysAllowed(t *testing.T) {
 	robot := &mockRobotAPI{}
 	scopes := &mockScopeChecker{allowedScopes: map[string]bool{}}
-	h := NewHandler(robot, nil, scopes, 500*time.Millisecond)
+	h := NewHandler(robot, nil, scopes, nil, 500*time.Millisecond)
 	now := time.Now().UnixMilli()
 
 	msg := &protocol.EStopMessage{Type: protocol.TypeEStop, T: now}

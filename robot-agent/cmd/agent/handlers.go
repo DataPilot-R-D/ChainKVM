@@ -8,6 +8,7 @@ import (
 	"github.com/pion/webrtc/v3"
 	"go.uber.org/zap"
 
+	"github.com/datapilot/chainkvm/robot-agent/internal/audit"
 	"github.com/datapilot/chainkvm/robot-agent/internal/safety"
 	"github.com/datapilot/chainkvm/robot-agent/pkg/protocol"
 )
@@ -100,6 +101,16 @@ func (a *agent) OnRevoked(sessionID, reason string) {
 
 	// Trigger safe-stop
 	a.safety.OnRevoked()
+
+	// Emit termination audit event
+	if a.audit != nil {
+		a.audit.Publish(audit.Event{
+			EventType: audit.EventSessionRevoked,
+			SessionID: sessionID,
+			Timestamp: time.Now().UTC(),
+			Metadata:  map[string]string{"reason": reason},
+		})
+	}
 }
 
 func (a *agent) onDataMessage(data []byte) {

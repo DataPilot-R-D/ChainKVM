@@ -129,12 +129,13 @@ type ErrorMessage struct {
 
 // Error codes.
 const (
-	ErrInvalidMessage = "INVALID_MESSAGE"
-	ErrUnknownType    = "UNKNOWN_TYPE"
-	ErrStaleCommand   = "STALE_COMMAND"
-	ErrRateLimited    = "RATE_LIMITED"
-	ErrUnauthorized   = "UNAUTHORIZED"
-	ErrSafeStopped    = "SAFE_STOPPED"
+	ErrInvalidMessage  = "INVALID_MESSAGE"
+	ErrUnknownType     = "UNKNOWN_TYPE"
+	ErrStaleCommand    = "STALE_COMMAND"
+	ErrRateLimited     = "RATE_LIMITED"
+	ErrUnauthorized    = "UNAUTHORIZED"
+	ErrSafeStopped     = "SAFE_STOPPED"
+	ErrSessionRevoked  = "SESSION_REVOKED"
 )
 
 // StateMessage reports robot state.

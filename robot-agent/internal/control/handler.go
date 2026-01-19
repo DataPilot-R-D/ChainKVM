@@ -3,51 +3,17 @@ package control
 
 import (
 	"encoding/json"
-	"errors"
 	"time"
 
 	"github.com/datapilot/chainkvm/robot-agent/pkg/protocol"
 )
-
-// Error types.
-var (
-	ErrRobotUnavailable = errors.New("robot API unavailable")
-	ErrUnknownType      = errors.New("unknown message type")
-	ErrInvalidJSON      = errors.New("invalid JSON message")
-	ErrScopeNotAllowed  = errors.New("operation not permitted by scope")
-)
-
-// Scope constants for authorization.
-const (
-	ScopeControl = "teleop:control"
-	ScopeEStop   = "teleop:estop"
-)
-
-// RobotAPI defines the interface for robot control operations.
-type RobotAPI interface {
-	Drive(v, w float64) error
-	SendKey(key, action string, modifiers []string) error
-	SendMouse(dx, dy, buttons, scroll int) error
-	EStop() error
-}
-
-// SafetyCallback is called when safety events occur.
-type SafetyCallback interface {
-	OnValidControl()
-	OnInvalidCommand()
-	OnEStop()
-}
-
-// ScopeChecker checks if a scope is allowed for the current session.
-type ScopeChecker interface {
-	HasScope(scope string) bool
-}
 
 // Handler processes control messages and dispatches to robot API.
 type Handler struct {
 	robot     RobotAPI
 	safety    SafetyCallback
 	scopes    ScopeChecker
+	session   SessionChecker
 	validator *Validator
 }
 
@@ -56,12 +22,14 @@ func NewHandler(
 	robot RobotAPI,
 	safety SafetyCallback,
 	scopes ScopeChecker,
+	session SessionChecker,
 	staleThreshold time.Duration,
 ) *Handler {
 	return &Handler{
 		robot:     robot,
 		safety:    safety,
 		scopes:    scopes,
+		session:   session,
 		validator: NewValidator(staleThreshold),
 	}
 }
@@ -72,6 +40,11 @@ func (h *Handler) HandleMessage(data []byte) (*protocol.AckMessage, error) {
 	if err := json.Unmarshal(data, &base); err != nil {
 		h.notifyInvalid()
 		return nil, ErrInvalidJSON
+	}
+
+	// Check if session is still active (reject commands from revoked sessions)
+	if !h.isSessionActive() {
+		return nil, ErrSessionRevoked
 	}
 
 	var err error
@@ -227,4 +200,12 @@ func (h *Handler) hasScope(scope string) bool {
 		return true // No scope checker = allow all (for testing)
 	}
 	return h.scopes.HasScope(scope)
+}
+
+// isSessionActive checks if the session is still active.
+func (h *Handler) isSessionActive() bool {
+	if h.session == nil {
+		return true // No session checker = allow all (for testing)
+	}
+	return h.session.IsActive()
 }
