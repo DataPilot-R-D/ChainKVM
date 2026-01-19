@@ -108,8 +108,7 @@ func calculateSessionSetupStats(samples []SessionSetupTimestamps, extract func(S
 
 	durations := make([]time.Duration, 0, len(samples))
 	for _, s := range samples {
-		d := extract(s)
-		if d > 0 {
+		if d := extract(s); d > 0 {
 			durations = append(durations, d)
 		}
 	}

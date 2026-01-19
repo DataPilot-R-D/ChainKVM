@@ -44,15 +44,13 @@ func (c *SessionSetupCollector) GenerateReport(targets SessionSetupTargets) Sess
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	phaseStats := func(extract func(SessionSetupPhases) time.Duration) RevocationStats {
+	phaseStats := func(getPhase func(SessionSetupPhases) time.Duration) RevocationStats {
 		return calculateSessionSetupStats(c.samples, func(ts SessionSetupTimestamps) time.Duration {
-			return extract(ts.Calculate())
+			return getPhase(ts.Calculate())
 		})
 	}
 
 	totalStats := phaseStats(func(p SessionSetupPhases) time.Duration { return p.Total })
-
-	meetsTarget := totalStats.P50 <= targets.TotalP50 && totalStats.P95 <= targets.TotalP95
 
 	return SessionSetupReport{
 		GeneratedAt: time.Now().UTC(),
@@ -64,7 +62,7 @@ func (c *SessionSetupCollector) GenerateReport(targets SessionSetupTargets) Sess
 			IceNegotiation:    phaseStats(func(p SessionSetupPhases) time.Duration { return p.IceNegotiation }),
 			SessionActivation: phaseStats(func(p SessionSetupPhases) time.Duration { return p.SessionActivation }),
 		},
-		MeetsTarget: meetsTarget,
+		MeetsTarget: totalStats.P50 <= targets.TotalP50 && totalStats.P95 <= targets.TotalP95,
 		Targets:     targets,
 	}
 }
