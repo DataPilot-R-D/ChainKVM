@@ -67,6 +67,9 @@ func (m *mockRobotAPI) SendMouse(dx, dy, buttons, scroll int) error {
 func (m *mockRobotAPI) EStop() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if m.shouldError {
+		return ErrRobotUnavailable
+	}
 	m.estopCalls++
 	return nil
 }
