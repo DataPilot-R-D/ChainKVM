@@ -12,10 +12,11 @@ func TestMonitor_InvalidCommand_TimeWindowReset(t *testing.T) {
 
 	threshold := 5
 	timeWindow := 50 * time.Millisecond
-	m := NewMonitor(500*time.Millisecond, threshold, timeWindow, func(trig Trigger) {
+	m := NewMonitor(500*time.Millisecond, threshold, timeWindow, func(trig Trigger) TransitionResult {
 		mu.Lock()
 		triggerCount++
 		mu.Unlock()
+		return TransitionResult{Trigger: trig, Timestamp: time.Now()}
 	})
 
 	// Send threshold-1 invalid commands
@@ -31,8 +32,6 @@ func TestMonitor_InvalidCommand_TimeWindowReset(t *testing.T) {
 		m.OnInvalidCommand()
 	}
 
-	time.Sleep(10 * time.Millisecond)
-
 	mu.Lock()
 	count := triggerCount
 	mu.Unlock()
@@ -44,14 +43,12 @@ func TestMonitor_InvalidCommand_TimeWindowReset(t *testing.T) {
 
 func TestMonitor_InvalidCommand_WindowPreservesCount(t *testing.T) {
 	var triggered Trigger
-	var wg sync.WaitGroup
-	wg.Add(1)
 
 	threshold := 5
 	timeWindow := 200 * time.Millisecond
-	m := NewMonitor(500*time.Millisecond, threshold, timeWindow, func(trig Trigger) {
+	m := NewMonitor(500*time.Millisecond, threshold, timeWindow, func(trig Trigger) TransitionResult {
 		triggered = trig
-		wg.Done()
+		return TransitionResult{Trigger: trig, Timestamp: time.Now()}
 	})
 
 	// Send threshold-1 invalid commands
@@ -61,14 +58,12 @@ func TestMonitor_InvalidCommand_WindowPreservesCount(t *testing.T) {
 	}
 
 	// Should not trigger yet
-	time.Sleep(10 * time.Millisecond)
 	if triggered != "" {
 		t.Errorf("should not trigger before threshold, got %s", triggered)
 	}
 
 	// Send one more - should trigger
 	m.OnInvalidCommand()
-	wg.Wait()
 
 	if triggered != TriggerInvalidCmds {
 		t.Errorf("expected TriggerInvalidCmds, got %s", triggered)
@@ -77,14 +72,12 @@ func TestMonitor_InvalidCommand_WindowPreservesCount(t *testing.T) {
 
 func TestMonitor_InvalidCommand_ZeroWindowDisablesFeature(t *testing.T) {
 	var triggered Trigger
-	var wg sync.WaitGroup
-	wg.Add(1)
 
 	threshold := 5
 	timeWindow := time.Duration(0) // Disabled
-	m := NewMonitor(500*time.Millisecond, threshold, timeWindow, func(trig Trigger) {
+	m := NewMonitor(500*time.Millisecond, threshold, timeWindow, func(trig Trigger) TransitionResult {
 		triggered = trig
-		wg.Done()
+		return TransitionResult{Trigger: trig, Timestamp: time.Now()}
 	})
 
 	// Send threshold-1 invalid commands
@@ -97,7 +90,6 @@ func TestMonitor_InvalidCommand_ZeroWindowDisablesFeature(t *testing.T) {
 
 	// Send one more - should still trigger (no window reset)
 	m.OnInvalidCommand()
-	wg.Wait()
 
 	if triggered != TriggerInvalidCmds {
 		t.Errorf("expected TriggerInvalidCmds, got %s", triggered)
@@ -110,10 +102,11 @@ func TestMonitor_InvalidCommand_WindowResetOnValidControl(t *testing.T) {
 
 	threshold := 5
 	timeWindow := 500 * time.Millisecond
-	m := NewMonitor(500*time.Millisecond, threshold, timeWindow, func(trig Trigger) {
+	m := NewMonitor(500*time.Millisecond, threshold, timeWindow, func(trig Trigger) TransitionResult {
 		mu.Lock()
 		triggerCount++
 		mu.Unlock()
+		return TransitionResult{Trigger: trig, Timestamp: time.Now()}
 	})
 
 	// Send threshold-1 invalid commands
@@ -128,8 +121,6 @@ func TestMonitor_InvalidCommand_WindowResetOnValidControl(t *testing.T) {
 	for i := 0; i < threshold-1; i++ {
 		m.OnInvalidCommand()
 	}
-
-	time.Sleep(10 * time.Millisecond)
 
 	mu.Lock()
 	count := triggerCount

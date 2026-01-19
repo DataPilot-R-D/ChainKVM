@@ -3,6 +3,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"time"
 
 	"github.com/pion/webrtc/v3"
@@ -12,6 +13,9 @@ import (
 	"github.com/datapilot/chainkvm/robot-agent/internal/safety"
 	"github.com/datapilot/chainkvm/robot-agent/pkg/protocol"
 )
+
+// errHardwareUnavailable indicates the hardware stop could not be executed.
+var errHardwareUnavailable = errors.New("hardware stop unavailable: handler not initialized")
 
 // OnOffer handles incoming SDP offer from console.
 func (a *agent) OnOffer(sessionID, token string, sdpData []byte) {
@@ -130,23 +134,73 @@ func (a *agent) onDataMessage(data []byte) {
 	}
 }
 
-func (a *agent) onSafeStop(trigger safety.Trigger) {
-	a.logger.Warn("safe-stop triggered", zap.String("trigger", string(trigger)))
+func (a *agent) onSafeStop(trigger safety.Trigger) safety.TransitionResult {
+	start := time.Now()
 
-	// Emit audit event for invalid command threshold
-	if trigger == safety.TriggerInvalidCmds && a.audit != nil {
-		a.audit.Publish(audit.Event{
-			EventType: audit.EventInvalidCommandThreshold,
-			SessionID: a.currentSessionID(),
-			Timestamp: time.Now().UTC(),
-			Metadata:  map[string]string{"trigger": string(trigger)},
-		})
+	a.logger.Warn("safe-stop triggered",
+		zap.String("trigger", string(trigger)),
+		zap.Int("priority", int(trigger.Priority())),
+		zap.Bool("recoverable", trigger.IsRecoverable()))
+
+	haltErr := a.executeHardwareStop(trigger)
+	duration := time.Since(start)
+
+	a.publishAuditEvent(trigger)
+	a.sendStateNotification(haltErr)
+
+	a.logger.Info("safe-stop transition complete",
+		zap.Duration("duration", duration),
+		zap.Bool("under_100ms", duration < 100*time.Millisecond))
+
+	return safety.TransitionResult{
+		Trigger:   trigger,
+		Timestamp: time.Now(),
+		Duration:  duration,
+		Error:     haltErr,
+	}
+}
+
+func (a *agent) executeHardwareStop(trigger safety.Trigger) error {
+	if a.handler == nil || a.handler.RobotAPI() == nil {
+		a.logger.Error("CRITICAL: cannot execute hardware stop - handler not initialized",
+			zap.String("trigger", string(trigger)),
+			zap.Bool("handler_nil", a.handler == nil))
+		return errHardwareUnavailable
+	}
+
+	if err := a.handler.RobotAPI().EStop(); err != nil {
+		a.logger.Error("CRITICAL: hardware stop failed - robot may still be moving",
+			zap.Error(err),
+			zap.String("trigger", string(trigger)))
+		return err
+	}
+	return nil
+}
+
+func (a *agent) publishAuditEvent(trigger safety.Trigger) {
+	if trigger != safety.TriggerInvalidCmds || a.audit == nil {
+		return
+	}
+	a.audit.Publish(audit.Event{
+		EventType: audit.EventInvalidCommandThreshold,
+		SessionID: a.currentSessionID(),
+		Timestamp: time.Now().UTC(),
+		Metadata:  map[string]string{"trigger": string(trigger)},
+	})
+}
+
+func (a *agent) sendStateNotification(haltErr error) {
+	robotState := protocol.RobotStateSafeStop
+	sessionState := "safe_stop"
+	if haltErr != nil {
+		robotState = protocol.RobotStateSafeStopFailed
+		sessionState = "safe_stop_failed"
 	}
 
 	stateMsg := protocol.StateMessage{
 		Type:         protocol.TypeState,
-		RobotState:   protocol.RobotStateSafeStop,
-		SessionState: "safe_stop",
+		RobotState:   robotState,
+		SessionState: sessionState,
 		T:            time.Now().UnixMilli(),
 	}
 	data, err := json.Marshal(stateMsg)
@@ -163,9 +217,8 @@ func (a *agent) currentSessionID() string {
 	if a.sessionMgr == nil {
 		return ""
 	}
-	info := a.sessionMgr.Info()
-	if info == nil {
-		return ""
+	if info := a.sessionMgr.Info(); info != nil {
+		return info.SessionID
 	}
-	return info.SessionID
+	return ""
 }

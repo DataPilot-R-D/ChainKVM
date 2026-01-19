@@ -34,6 +34,11 @@ func NewHandler(
 	}
 }
 
+// RobotAPI returns the robot API for direct hardware operations.
+func (h *Handler) RobotAPI() RobotAPI {
+	return h.robot
+}
+
 // HandleMessage processes a raw JSON message and dispatches to the handler.
 func (h *Handler) HandleMessage(data []byte) (*protocol.AckMessage, error) {
 	var base protocol.BaseMessage

@@ -148,9 +148,10 @@ type StateMessage struct {
 
 // Robot states.
 const (
-	RobotStateIdle     = "idle"
-	RobotStateActive   = "active"
-	RobotStateSafeStop = "safe_stop"
+	RobotStateIdle           = "idle"
+	RobotStateActive         = "active"
+	RobotStateSafeStop       = "safe_stop"
+	RobotStateSafeStopFailed = "safe_stop_failed" // Hardware stop failed - robot may still be moving
 )
 
 // Scopes for authorization.
