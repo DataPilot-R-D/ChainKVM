@@ -136,14 +136,21 @@ func (a *agent) onDataMessage(data []byte) {
 
 func (a *agent) onSafeStop(trigger safety.Trigger) safety.TransitionResult {
 	start := time.Now()
-	a.logSafeStopTrigger(trigger)
+
+	a.logger.Warn("safe-stop triggered",
+		zap.String("trigger", string(trigger)),
+		zap.Int("priority", int(trigger.Priority())),
+		zap.Bool("recoverable", trigger.IsRecoverable()))
 
 	haltErr := a.executeHardwareStop(trigger)
 	duration := time.Since(start)
 
 	a.publishAuditEvent(trigger)
 	a.sendStateNotification(haltErr)
-	a.logSafeStopComplete(duration)
+
+	a.logger.Info("safe-stop transition complete",
+		zap.Duration("duration", duration),
+		zap.Bool("under_100ms", duration < 100*time.Millisecond))
 
 	return safety.TransitionResult{
 		Trigger:   trigger,
@@ -153,13 +160,6 @@ func (a *agent) onSafeStop(trigger safety.Trigger) safety.TransitionResult {
 	}
 }
 
-func (a *agent) logSafeStopTrigger(trigger safety.Trigger) {
-	a.logger.Warn("safe-stop triggered",
-		zap.String("trigger", string(trigger)),
-		zap.Int("priority", int(trigger.Priority())),
-		zap.Bool("recoverable", trigger.IsRecoverable()))
-}
-
 func (a *agent) executeHardwareStop(trigger safety.Trigger) error {
 	if a.handler == nil || a.handler.RobotAPI() == nil {
 		a.logger.Error("CRITICAL: cannot execute hardware stop - handler not initialized",
@@ -167,24 +167,26 @@ func (a *agent) executeHardwareStop(trigger safety.Trigger) error {
 			zap.Bool("handler_nil", a.handler == nil))
 		return errHardwareUnavailable
 	}
-	haltErr := a.handler.RobotAPI().EStop()
-	if haltErr != nil {
+
+	if err := a.handler.RobotAPI().EStop(); err != nil {
 		a.logger.Error("CRITICAL: hardware stop failed - robot may still be moving",
-			zap.Error(haltErr),
+			zap.Error(err),
 			zap.String("trigger", string(trigger)))
+		return err
 	}
-	return haltErr
+	return nil
 }
 
 func (a *agent) publishAuditEvent(trigger safety.Trigger) {
-	if trigger == safety.TriggerInvalidCmds && a.audit != nil {
-		a.audit.Publish(audit.Event{
-			EventType: audit.EventInvalidCommandThreshold,
-			SessionID: a.currentSessionID(),
-			Timestamp: time.Now().UTC(),
-			Metadata:  map[string]string{"trigger": string(trigger)},
-		})
+	if trigger != safety.TriggerInvalidCmds || a.audit == nil {
+		return
 	}
+	a.audit.Publish(audit.Event{
+		EventType: audit.EventInvalidCommandThreshold,
+		SessionID: a.currentSessionID(),
+		Timestamp: time.Now().UTC(),
+		Metadata:  map[string]string{"trigger": string(trigger)},
+	})
 }
 
 func (a *agent) sendStateNotification(haltErr error) {
@@ -211,19 +213,12 @@ func (a *agent) sendStateNotification(haltErr error) {
 	}
 }
 
-func (a *agent) logSafeStopComplete(duration time.Duration) {
-	a.logger.Info("safe-stop transition complete",
-		zap.Duration("duration", duration),
-		zap.Bool("under_100ms", duration < 100*time.Millisecond))
-}
-
 func (a *agent) currentSessionID() string {
 	if a.sessionMgr == nil {
 		return ""
 	}
-	info := a.sessionMgr.Info()
-	if info == nil {
-		return ""
+	if info := a.sessionMgr.Info(); info != nil {
+		return info.SessionID
 	}
-	return info.SessionID
+	return ""
 }

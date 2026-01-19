@@ -88,13 +88,15 @@ func (m *Monitor) OnInvalidCommand() {
 
 	now := time.Now()
 
-	windowEnabled := m.invalidCmdTimeWindow > 0
-	windowExpired := windowEnabled && now.Sub(m.firstInvalidCmdTime) > m.invalidCmdTimeWindow
-
-	if m.invalidCmdCount > 0 && windowExpired {
+	// Reset counter if time window expired (when window is enabled)
+	windowExpired := m.invalidCmdTimeWindow > 0 &&
+		m.invalidCmdCount > 0 &&
+		now.Sub(m.firstInvalidCmdTime) > m.invalidCmdTimeWindow
+	if windowExpired {
 		m.invalidCmdCount = 0
 	}
 
+	// Start new window on first invalid command
 	if m.invalidCmdCount == 0 {
 		m.firstInvalidCmdTime = now
 	}
