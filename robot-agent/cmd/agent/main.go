@@ -93,7 +93,8 @@ func (a *agent) initComponents() {
 	})
 
 	timeout := time.Duration(a.cfg.ControlLossTimeoutMS) * time.Millisecond
-	a.safety = safety.NewMonitor(timeout, a.cfg.InvalidCmdThreshold, a.onSafeStop)
+	timeWindow := time.Duration(a.cfg.InvalidCmdTimeWindowMS) * time.Millisecond
+	a.safety = safety.NewMonitor(timeout, a.cfg.InvalidCmdThreshold, timeWindow, a.onSafeStop)
 
 	robotAPI := control.NewStubRobotAPI(a.logger)
 	staleThreshold := 200 * time.Millisecond

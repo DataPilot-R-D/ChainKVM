@@ -21,11 +21,13 @@ const (
 type Monitor struct {
 	mu sync.Mutex
 
-	controlLossTimeout  time.Duration
-	invalidCmdThreshold int
+	controlLossTimeout   time.Duration
+	invalidCmdThreshold  int
+	invalidCmdTimeWindow time.Duration
 
-	lastControlTime time.Time
-	invalidCmdCount int
+	lastControlTime     time.Time
+	invalidCmdCount     int
+	firstInvalidCmdTime time.Time
 
 	safeStopFn    func(trigger Trigger)
 	stopped       bool
@@ -36,13 +38,15 @@ type Monitor struct {
 func NewMonitor(
 	controlLossTimeout time.Duration,
 	invalidCmdThreshold int,
+	invalidCmdTimeWindow time.Duration,
 	safeStopFn func(trigger Trigger),
 ) *Monitor {
 	return &Monitor{
-		controlLossTimeout:  controlLossTimeout,
-		invalidCmdThreshold: invalidCmdThreshold,
-		safeStopFn:          safeStopFn,
-		lastControlTime:     time.Now(),
+		controlLossTimeout:   controlLossTimeout,
+		invalidCmdThreshold:  invalidCmdThreshold,
+		invalidCmdTimeWindow: invalidCmdTimeWindow,
+		safeStopFn:           safeStopFn,
+		lastControlTime:      time.Now(),
 	}
 }
 
@@ -66,6 +70,20 @@ func (m *Monitor) OnValidControl() {
 func (m *Monitor) OnInvalidCommand() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+
+	now := time.Now()
+
+	// Reset counter if time window expired
+	if m.invalidCmdCount > 0 && m.invalidCmdTimeWindow > 0 {
+		if now.Sub(m.firstInvalidCmdTime) > m.invalidCmdTimeWindow {
+			m.invalidCmdCount = 0
+		}
+	}
+
+	// Track first invalid command time in window
+	if m.invalidCmdCount == 0 {
+		m.firstInvalidCmdTime = now
+	}
 
 	m.invalidCmdCount++
 	if m.invalidCmdCount >= m.invalidCmdThreshold {
@@ -123,6 +141,7 @@ func (m *Monitor) Reset() {
 	defer m.mu.Unlock()
 
 	m.invalidCmdCount = 0
+	m.firstInvalidCmdTime = time.Time{}
 	m.lastControlTime = time.Now()
 	m.stopped = false
 	m.inControlLoss = false
