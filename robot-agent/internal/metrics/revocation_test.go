@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"sync"
 	"testing"
 	"time"
 )
@@ -230,5 +231,72 @@ func TestNewRevocationCollector_DefaultMaxSamples(t *testing.T) {
 
 	if c.maxSamples != 1000 {
 		t.Errorf("expected default 1000 max samples, got %d", c.maxSamples)
+	}
+}
+
+func TestRevocationCollector_ConcurrentAccess(t *testing.T) {
+	c := NewRevocationCollector(100)
+	var wg sync.WaitGroup
+
+	// Concurrent writers
+	for i := range 10 {
+		wg.Add(1)
+		go func(idx int) {
+			defer wg.Done()
+			base := time.Now()
+			for j := range 10 {
+				c.Record(RevocationTimestamps{
+					MessageReceived:   base,
+					SafeStopCompleted: base.Add(time.Duration(idx*j+1) * time.Millisecond),
+				})
+			}
+		}(i)
+	}
+
+	// Concurrent readers
+	for range 5 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for range 10 {
+				_ = c.Stats()
+				_ = c.Count()
+			}
+		}()
+	}
+
+	wg.Wait()
+
+	// Should have recorded measurements without panic
+	if c.Count() == 0 {
+		t.Error("expected some measurements to be recorded")
+	}
+}
+
+func TestCalculateStats_ZeroDurations(t *testing.T) {
+	c := NewRevocationCollector(100)
+
+	base := time.Now()
+	// Record measurement where SafeStopCompleted == MessageReceived (zero duration)
+	c.Record(RevocationTimestamps{
+		MessageReceived:   base,
+		SafeStopCompleted: base, // Zero duration
+	})
+
+	// Record one valid measurement
+	c.Record(RevocationTimestamps{
+		MessageReceived:   base,
+		SafeStopCompleted: base.Add(10 * time.Millisecond),
+	})
+
+	stats := c.Stats()
+
+	// Only the valid measurement should be counted
+	if stats.Count != 1 {
+		t.Errorf("expected count 1 (excluding zero duration), got %d", stats.Count)
+	}
+
+	if stats.Min != 10*time.Millisecond {
+		t.Errorf("expected min 10ms, got %v", stats.Min)
 	}
 }
