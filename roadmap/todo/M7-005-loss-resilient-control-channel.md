@@ -60,9 +60,9 @@ As a system architect, I want the control channel to remain usable under packet 
 
 ## Dependencies
 
-- **Blocked by:** M2-009, M1-003
-- **Blocks:** M6-004
-- **Related:** M7-001
+- **Blocked by:** M1-003, M2-009, M7-001, M7-004
+- **Blocks:** None
+- **Related:** M6-002, M6-004
 
 ## References
 

@@ -63,8 +63,8 @@ As a system architect, I want adaptive bitrate control with tail-latency guards 
 ## Dependencies
 
 - **Blocked by:** M1-002, M2-004
-- **Blocks:** M7-003, M6-003
-- **Related:** M6-004
+- **Blocks:** M7-003
+- **Related:** M6-003, M6-004
 
 ## References
 

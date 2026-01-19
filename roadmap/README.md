@@ -238,13 +238,14 @@ Critical Path: M1 → M2 → M3 → M4 → M5 → M6 → M7
 ### M7: Research Alignment & Performance Hardening (6 tasks)
 
 **Goal:** Align the POC with research-backed latency, resilience, and topology insights.
+**Recommended order:** M7-001 → M7-002 → M7-004 → M7-005 → M7-003 → M7-006
 
 | ID | Task | Priority | Component |
 |----|------|----------|-----------|
 | M7-001 | Implement hybrid topology (P2P control + relayed video) | P0 | Transport |
 | M7-002 | Implement adaptive rate control + tail-latency guard | P0 | Robot Agent |
 | M7-003 | Tune low-latency buffering strategy | P1 | Web Console |
-| M7-004 | Implement ICE restart + network handover recovery | P1 | Transport |
+| M7-004 | Implement ICE restart + network handover recovery | P0 | Transport |
 | M7-005 | Improve control channel loss resilience | P1 | Transport |
 | M7-006 | Produce market benchmark report | P2 | Measurement |
 
@@ -279,7 +280,6 @@ Critical Path: M1 → M2 → M3 → M4 → M5 → M6 → M7
 | M3 | 14 | 5 | 6 | 1 | 2 |
 | M4 | 12 | 5 | 6 | 0 | 1 |
 | M5 | 12 | 5 | 6 | 0 | 1 |
-| M6 | 12 | 4 | 5 | 3 | 0 |
-| M7 | 6 | 2 | 3 | 1 | 0 |
 | M6 | 12 | 4 | 4 | 4 | 0 |
-| **Total** | **68** | **28** | **29** | **7** | **4** |
+| M7 | 6 | 3 | 2 | 1 | 0 |
+| **Total** | **74** | **31** | **31** | **8** | **4** |

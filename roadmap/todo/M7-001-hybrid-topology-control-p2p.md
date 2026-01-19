@@ -72,8 +72,8 @@ As a system architect, I want control traffic to avoid relay latency by using a 
 ## Dependencies
 
 - **Blocked by:** M2-004, M2-006, M2-009
-- **Blocks:** M7-004
-- **Related:** M6-002
+- **Blocks:** M7-004, M7-005
+- **Related:** M6-002, M6-004
 
 ## References
 

@@ -3,7 +3,7 @@
 ## Metadata
 - **Milestone:** M7 - Research Alignment & Performance Hardening
 - **Component:** Transport
-- **Priority:** P1
+- **Priority:** P0
 - **Status:** Todo
 
 ## User Story
@@ -60,9 +60,9 @@ As a system architect, I want automatic ICE restarts on network changes so that 
 
 ## Dependencies
 
-- **Blocked by:** M2-006, M2-009
-- **Blocks:** M6-010
-- **Related:** M7-001
+- **Blocked by:** M2-006, M2-009, M7-001
+- **Blocks:** M7-005
+- **Related:** M6-001, M6-010
 
 ## References
 

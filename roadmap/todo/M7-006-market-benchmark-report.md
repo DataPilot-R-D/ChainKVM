@@ -52,9 +52,9 @@ As a product owner, I want a benchmark report that compares ChainKVM KPIs agains
 
 ## Dependencies
 
-- **Blocked by:** M6-005, M6-009, M6-010
+- **Blocked by:** M6-005, M6-009, M6-010, M6-011, M7-001, M7-002, M7-003, M7-004, M7-005
 - **Blocks:** None
-- **Related:** M6-011
+- **Related:** M6-012
 
 ## References
 

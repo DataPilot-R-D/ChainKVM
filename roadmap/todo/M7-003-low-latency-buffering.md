@@ -60,9 +60,9 @@ As a system architect, I want the client to favor the live edge by minimizing bu
 
 ## Dependencies
 
-- **Blocked by:** M2-004
+- **Blocked by:** M2-004, M7-002
 - **Blocks:** None
-- **Related:** M6-003
+- **Related:** M6-003, M6-004
 
 ## References
 
