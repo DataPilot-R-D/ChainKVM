@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"sort"
 	"sync"
 	"time"
 )
@@ -117,16 +118,9 @@ func calculateSessionSetupStats(samples []SessionSetupTimestamps, extract func(S
 		return RevocationStats{}
 	}
 
-	return computeStats(durations)
-}
-
-// computeStats calculates statistics from a slice of durations.
-func computeStats(durations []time.Duration) RevocationStats {
-	if len(durations) == 0 {
-		return RevocationStats{}
-	}
-
-	sortDurations(durations)
+	sort.Slice(durations, func(i, j int) bool {
+		return durations[i] < durations[j]
+	})
 
 	var total time.Duration
 	for _, d := range durations {
@@ -141,16 +135,5 @@ func computeStats(durations []time.Duration) RevocationStats {
 		Min:   durations[0],
 		Max:   durations[len(durations)-1],
 		Avg:   total / time.Duration(len(durations)),
-	}
-}
-
-// sortDurations sorts durations in ascending order.
-func sortDurations(durations []time.Duration) {
-	for i := 0; i < len(durations)-1; i++ {
-		for j := i + 1; j < len(durations); j++ {
-			if durations[j] < durations[i] {
-				durations[i], durations[j] = durations[j], durations[i]
-			}
-		}
 	}
 }
