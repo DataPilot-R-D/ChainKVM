@@ -104,11 +104,14 @@ func startConcurrentCommandSenders(h *Handler, n int) chan struct{} {
 
 	for range n {
 		go func() {
+			ticker := time.NewTicker(time.Millisecond)
+			defer ticker.Stop()
+
 			for {
 				select {
 				case <-stopCh:
 					return
-				default:
+				case <-ticker.C:
 					msg := &protocol.DriveMessage{
 						Type: protocol.TypeDrive, V: 0.5, W: 0.1,
 						T: time.Now().UnixMilli(),

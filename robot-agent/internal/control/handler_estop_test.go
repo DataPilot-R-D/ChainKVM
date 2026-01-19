@@ -32,13 +32,7 @@ func TestEStop_NotifiesSafety(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	safety.mu.Lock()
-	count := safety.estopCount
-	safety.mu.Unlock()
-
-	if count != 1 {
-		t.Errorf("expected 1 safety e-stop callback, got %d", count)
-	}
+	verifySafetyEStopCalls(t, safety, 1)
 }
 
 // TestEStop_NoTimestampValidation verifies E-Stop is not rejected for stale timestamps.
@@ -112,5 +106,17 @@ func verifyEStopCalls(t *testing.T, robot *mockRobotAPI, expected int) {
 
 	if calls != expected {
 		t.Errorf("expected %d e-stop call(s), got %d", expected, calls)
+	}
+}
+
+// verifySafetyEStopCalls checks the number of E-Stop callbacks on the mock safety.
+func verifySafetyEStopCalls(t *testing.T, safety *mockSafetyCallback, expected int) {
+	t.Helper()
+	safety.mu.Lock()
+	count := safety.estopCount
+	safety.mu.Unlock()
+
+	if count != expected {
+		t.Errorf("expected %d safety e-stop callback(s), got %d", expected, count)
 	}
 }
