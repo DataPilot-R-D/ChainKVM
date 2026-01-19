@@ -125,7 +125,7 @@ func TestRevocation_ConcurrentTermination(t *testing.T) {
 	validator := NewTokenValidator(pub, robotID, 30*time.Second)
 	mgr := NewManager(robotID, validator)
 
-	callbackCount := int32(0)
+	callbackCount := 0
 	var mu sync.Mutex
 	mgr.SetStateChangeCallback(func(s State) {
 		if s == StateTerminated {
@@ -157,7 +157,7 @@ func TestRevocation_ConcurrentTermination(t *testing.T) {
 	mu.Lock()
 	count := callbackCount
 	mu.Unlock()
-	assert.Equal(t, int32(1), count)
+	assert.Equal(t, 1, count)
 }
 
 // TestRevocation_ActiveSessionCheck verifies IsActive() behavior.
