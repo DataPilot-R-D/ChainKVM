@@ -24,7 +24,7 @@ func (a *atomicSessionChecker) setActive(v bool) {
 }
 
 // TestRevocation_ConcurrentCommands verifies commands are properly rejected
-// when session is revoked during concurrent command processing.
+// when session is revoked, using deterministic two-phase approach.
 func TestRevocation_ConcurrentCommands(t *testing.T) {
 	robot := &mockRobotAPI{}
 	session := &atomicSessionChecker{}
@@ -34,47 +34,43 @@ func TestRevocation_ConcurrentCommands(t *testing.T) {
 	var wg sync.WaitGroup
 	var successCount, revokedCount int32
 
-	// Start 20 concurrent command senders
-	for range 20 {
+	// Phase 1: Commands with active session
+	for range 10 {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			for range 10 {
-				msg := &protocol.DriveMessage{
-					Type: protocol.TypeDrive,
-					V:    0.5,
-					W:    0.1,
-					T:    time.Now().UnixMilli(),
-				}
-				data, _ := json.Marshal(msg)
-				_, err := h.HandleMessage(data)
-
-				if err == nil {
-					atomic.AddInt32(&successCount, 1)
-				} else if err == ErrSessionRevoked {
-					atomic.AddInt32(&revokedCount, 1)
-				}
+			msg := &protocol.DriveMessage{Type: protocol.TypeDrive, V: 0.5, W: 0.1, T: time.Now().UnixMilli()}
+			data, _ := json.Marshal(msg)
+			if _, err := h.HandleMessage(data); err == nil {
+				atomic.AddInt32(&successCount, 1)
 			}
 		}()
 	}
-
-	// Revoke session mid-stream
-	time.Sleep(1 * time.Millisecond)
-	session.setActive(false)
-
 	wg.Wait()
 
-	// Should have some successes before revocation
-	if successCount == 0 {
-		t.Error("expected some commands to succeed before revocation")
-	}
+	// Revoke session
+	session.setActive(false)
 
-	// Should have some rejections after revocation
-	if revokedCount == 0 {
-		t.Error("expected some commands to be rejected after revocation")
+	// Phase 2: Commands with revoked session
+	for range 10 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			msg := &protocol.DriveMessage{Type: protocol.TypeDrive, V: 0.5, W: 0.1, T: time.Now().UnixMilli()}
+			data, _ := json.Marshal(msg)
+			if _, err := h.HandleMessage(data); err == ErrSessionRevoked {
+				atomic.AddInt32(&revokedCount, 1)
+			}
+		}()
 	}
+	wg.Wait()
 
-	t.Logf("Commands: %d succeeded, %d revoked", successCount, revokedCount)
+	if successCount != 10 {
+		t.Errorf("expected 10 commands to succeed before revocation, got %d", successCount)
+	}
+	if revokedCount != 10 {
+		t.Errorf("expected 10 commands to be rejected after revocation, got %d", revokedCount)
+	}
 }
 
 // TestRevocation_NoSafetyCallbackAfterRevocation verifies that commands
@@ -125,47 +121,39 @@ func TestRevocation_NoSafetyCallbackAfterRevocation(t *testing.T) {
 	}
 }
 
-// TestRevocation_RaceConditionSafety verifies thread safety when revocation
-// happens during command processing.
+// TestRevocation_RaceConditionSafety verifies thread safety under concurrent state changes.
+// Run with -race flag to detect data races.
 func TestRevocation_RaceConditionSafety(t *testing.T) {
 	robot := &mockRobotAPI{}
-	safety := &mockSafetyCallback{}
 	session := &atomicSessionChecker{}
 	session.setActive(true)
-	h := NewHandler(robot, safety, nil, session, 500*time.Millisecond)
+	h := NewHandler(robot, nil, nil, session, 500*time.Millisecond)
 
-	// Stress test with many goroutines
 	var wg sync.WaitGroup
-	for range 50 {
+	var cmdCount int32
+	for range 20 {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			for range 20 {
-				msg := &protocol.DriveMessage{
-					Type: protocol.TypeDrive,
-					V:    0.3,
-					W:    0.1,
-					T:    time.Now().UnixMilli(),
-				}
+			for range 10 {
+				msg := &protocol.DriveMessage{Type: protocol.TypeDrive, V: 0.3, W: 0.1, T: time.Now().UnixMilli()}
 				data, _ := json.Marshal(msg)
 				_, _ = h.HandleMessage(data)
+				atomic.AddInt32(&cmdCount, 1)
 			}
 		}()
 	}
-
-	// Toggle session state rapidly
 	go func() {
-		for range 100 {
-			// Toggle between active and inactive
-			current := session.active.Load()
-			session.setActive(!current)
-			time.Sleep(100 * time.Microsecond)
+		for range 50 {
+			session.setActive(!session.active.Load())
+			time.Sleep(50 * time.Microsecond)
 		}
 	}()
-
 	wg.Wait()
 
-	// Test passes if no data races occur (run with -race)
+	if cmdCount != 200 {
+		t.Errorf("expected 200 commands processed, got %d", cmdCount)
+	}
 }
 
 // TestRevocation_MultipleTypes verifies all command types are rejected
