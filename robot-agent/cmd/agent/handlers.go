@@ -157,9 +157,17 @@ func (a *agent) onDataMessage(data []byte) {
 				if a.controlRTTMetrics != nil {
 					a.controlRTTMetrics.RecordPong(&pong)
 				}
+			} else {
+				a.logger.Warn("failed to unmarshal pong message",
+					zap.Error(err),
+					zap.Int("data_size", len(data)))
 			}
 			return // Pong processed, don't pass to control handler
 		}
+	} else {
+		a.logger.Debug("failed to unmarshal base message type",
+			zap.Error(err),
+			zap.Int("data_size", len(data)))
 	}
 
 	// Handle control messages
@@ -226,39 +234,4 @@ func (a *agent) executeHardwareStop(trigger safety.Trigger) error {
 	return nil
 }
 
-func (a *agent) startControlRTTMeasurement() {
-	if a.controlRTTMetrics == nil {
-		return
-	}
-
-	a.pingTicker = time.NewTicker(a.pingInterval)
-	go func() {
-		for range a.pingTicker.C {
-			if a.transport == nil || a.sessionMgr.State() != "active" {
-				continue
-			}
-
-			ping := a.controlRTTMetrics.GeneratePing()
-			data, err := json.Marshal(ping)
-			if err != nil {
-				a.logger.Warn("failed to marshal ping", zap.Error(err))
-				continue
-			}
-
-			if err := a.transport.SendData(data); err != nil {
-				a.logger.Debug("failed to send ping", zap.Error(err))
-			}
-		}
-	}()
-
-	a.logger.Debug("control RTT measurement started", zap.Duration("interval", a.pingInterval))
-}
-
-func (a *agent) stopControlRTTMeasurement() {
-	if a.pingTicker != nil {
-		a.pingTicker.Stop()
-		a.pingTicker = nil
-		a.logger.Debug("control RTT measurement stopped")
-	}
-}
 

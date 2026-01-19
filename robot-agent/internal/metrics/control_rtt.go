@@ -92,7 +92,11 @@ func (c *ControlRTTCollector) RecordPong(pong *protocol.PongMessage) {
 func (c *ControlRTTCollector) Stats() RevocationStats {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	return c.statsLocked()
+}
 
+// statsLocked computes stats without acquiring lock (caller must hold lock).
+func (c *ControlRTTCollector) statsLocked() RevocationStats {
 	if len(c.samples) == 0 {
 		return RevocationStats{}
 	}

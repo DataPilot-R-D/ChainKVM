@@ -106,3 +106,64 @@ func (a *agent) completeSessionSetupMeasurement() {
 func (a *agent) ControlRTTMetrics() *metrics.ControlRTTCollector {
 	return a.controlRTTMetrics
 }
+
+func (a *agent) startControlRTTMeasurement() {
+	if a.controlRTTMetrics == nil {
+		return
+	}
+
+	a.pingTicker = time.NewTicker(a.pingInterval)
+	go func() {
+		consecutiveMarshalErrors := 0
+		consecutiveSendErrors := 0
+		const maxConsecutiveErrors = 3
+
+		for range a.pingTicker.C {
+			if a.transport == nil || a.sessionMgr.State() != "active" {
+				continue
+			}
+
+			ping := a.controlRTTMetrics.GeneratePing()
+			data, err := json.Marshal(ping)
+			if err != nil {
+				consecutiveMarshalErrors++
+				a.logger.Error("failed to marshal ping",
+					zap.Error(err),
+					zap.Int("consecutive_errors", consecutiveMarshalErrors))
+				if consecutiveMarshalErrors >= maxConsecutiveErrors {
+					a.logger.Error("RTT measurement circuit breaker triggered: marshal failures",
+						zap.Int("consecutive_errors", consecutiveMarshalErrors))
+					a.stopControlRTTMeasurement()
+					return
+				}
+				continue
+			}
+			consecutiveMarshalErrors = 0
+
+			if err := a.transport.SendData(data); err != nil {
+				consecutiveSendErrors++
+				a.logger.Warn("failed to send ping",
+					zap.Error(err),
+					zap.Int("consecutive_errors", consecutiveSendErrors))
+				if consecutiveSendErrors >= maxConsecutiveErrors {
+					a.logger.Error("RTT measurement circuit breaker triggered: send failures",
+						zap.Int("consecutive_errors", consecutiveSendErrors))
+					a.stopControlRTTMeasurement()
+					return
+				}
+			} else {
+				consecutiveSendErrors = 0
+			}
+		}
+	}()
+
+	a.logger.Debug("control RTT measurement started", zap.Duration("interval", a.pingInterval))
+}
+
+func (a *agent) stopControlRTTMeasurement() {
+	if a.pingTicker != nil {
+		a.pingTicker.Stop()
+		a.pingTicker = nil
+		a.logger.Debug("control RTT measurement stopped")
+	}
+}

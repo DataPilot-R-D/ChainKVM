@@ -24,8 +24,8 @@ type ControlRTTReport struct {
 // DefaultControlRTTTargets returns LAN targets from NFR-P2.
 func DefaultControlRTTTargets() ControlRTTTargets {
 	return ControlRTTTargets{
-		P50: 50 * time.Millisecond,  // LAN: p50 ≤ 50ms
-		P95: 150 * time.Millisecond, // WAN: p50 ≤ 150ms (used as P95)
+		P50: 50 * time.Millisecond,  // LAN target: p50 ≤ 50ms
+		P95: 150 * time.Millisecond, // WAN target: p50 ≤ 150ms
 	}
 }
 
@@ -43,48 +43,6 @@ func (c *ControlRTTCollector) GenerateReport(targets ControlRTTTargets) ControlR
 		Stats:       stats,
 		MeetsTarget: meetsTarget,
 		Targets:     targets,
-	}
-}
-
-// statsLocked computes stats without acquiring lock (caller must hold lock).
-func (c *ControlRTTCollector) statsLocked() RevocationStats {
-	if len(c.samples) == 0 {
-		return RevocationStats{}
-	}
-
-	rtts := make([]time.Duration, len(c.samples))
-	for i, s := range c.samples {
-		rtts[i] = s.RTT
-	}
-
-	// Sort for percentile calculation
-	sortedRTTs := make([]time.Duration, len(rtts))
-	copy(sortedRTTs, rtts)
-
-	// Use the existing sort from control_rtt.go Stats() method
-	// to avoid duplication - but we need to avoid importing sort again
-	// Actually just inline it here
-	for i := 0; i < len(sortedRTTs); i++ {
-		for j := i + 1; j < len(sortedRTTs); j++ {
-			if sortedRTTs[i] > sortedRTTs[j] {
-				sortedRTTs[i], sortedRTTs[j] = sortedRTTs[j], sortedRTTs[i]
-			}
-		}
-	}
-
-	var total time.Duration
-	for _, rtt := range rtts {
-		total += rtt
-	}
-
-	return RevocationStats{
-		Count: len(rtts),
-		Min:   sortedRTTs[0],
-		Max:   sortedRTTs[len(sortedRTTs)-1],
-		P50:   percentile(sortedRTTs, 50),
-		P95:   percentile(sortedRTTs, 95),
-		P99:   percentile(sortedRTTs, 99),
-		Avg:   total / time.Duration(len(rtts)),
 	}
 }
 
