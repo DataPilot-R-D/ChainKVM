@@ -67,3 +67,18 @@ func (a *agent) currentSessionID() string {
 func (a *agent) RevocationMetrics() *metrics.RevocationCollector {
 	return a.revocationMetrics
 }
+
+func (a *agent) recordRevocationTimestamp(fn func(*metrics.RevocationTimestamps)) {
+	if a.currentRevocation != nil {
+		fn(a.currentRevocation)
+	}
+}
+
+func (a *agent) completeRevocationMeasurement() {
+	if a.currentRevocation == nil || a.revocationMetrics == nil {
+		return
+	}
+	a.currentRevocation.SafeStopCompleted = time.Now()
+	a.revocationMetrics.Record(*a.currentRevocation)
+	a.currentRevocation = nil
+}

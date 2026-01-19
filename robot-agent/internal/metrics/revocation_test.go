@@ -106,13 +106,12 @@ func TestRevocationCollector_Stats(t *testing.T) {
 	base := time.Now()
 	durations := []time.Duration{10, 20, 30, 40, 50, 60, 70, 80, 90, 100}
 
-	for i, d := range durations {
+	for _, d := range durations {
 		c.Record(RevocationTimestamps{
 			SessionID:         "session",
 			MessageReceived:   base,
 			SafeStopCompleted: base.Add(d * time.Millisecond),
 		})
-		_ = i
 	}
 
 	stats := c.Stats()

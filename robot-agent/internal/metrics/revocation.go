@@ -53,29 +53,21 @@ type PropagationTimes struct {
 
 // Calculate computes propagation times from timestamps.
 func (t *RevocationTimestamps) Calculate() PropagationTimes {
-	var p PropagationTimes
-
-	if !t.MessageReceived.IsZero() && !t.SafeStopCompleted.IsZero() {
-		p.Total = t.SafeStopCompleted.Sub(t.MessageReceived)
+	return PropagationTimes{
+		Total:             duration(t.MessageReceived, t.SafeStopCompleted),
+		HandlerProcessing: duration(t.HandlerStarted, t.SafeStopTriggered),
+		TransportTeardown: duration(t.HandlerStarted, t.TransportClosed),
+		SessionTeardown:   duration(t.TransportClosed, t.SessionTerminated),
+		SafeStopExecution: duration(t.SafeStopTriggered, t.SafeStopCompleted),
 	}
+}
 
-	if !t.HandlerStarted.IsZero() && !t.SafeStopTriggered.IsZero() {
-		p.HandlerProcessing = t.SafeStopTriggered.Sub(t.HandlerStarted)
+// duration returns the time between start and end, or zero if either is unset.
+func duration(start, end time.Time) time.Duration {
+	if start.IsZero() || end.IsZero() {
+		return 0
 	}
-
-	if !t.HandlerStarted.IsZero() && !t.TransportClosed.IsZero() {
-		p.TransportTeardown = t.TransportClosed.Sub(t.HandlerStarted)
-	}
-
-	if !t.TransportClosed.IsZero() && !t.SessionTerminated.IsZero() {
-		p.SessionTeardown = t.SessionTerminated.Sub(t.TransportClosed)
-	}
-
-	if !t.SafeStopTriggered.IsZero() && !t.SafeStopCompleted.IsZero() {
-		p.SafeStopExecution = t.SafeStopCompleted.Sub(t.SafeStopTriggered)
-	}
-
-	return p
+	return end.Sub(start)
 }
 
 // RevocationStats holds statistical analysis of revocation measurements.

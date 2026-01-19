@@ -155,24 +155,13 @@ func (a *agent) onSafeStop(trigger safety.Trigger) safety.TransitionResult {
 		zap.Bool("recoverable", trigger.IsRecoverable()))
 
 	haltErr := a.executeHardwareStop(trigger)
-
-	// Capture hardware stop timestamp for revocation measurements
-	if a.currentRevocation != nil {
-		a.currentRevocation.HardwareStopIssued = time.Now()
-	}
-
-	duration := time.Since(start)
+	a.recordRevocationTimestamp(func(ts *metrics.RevocationTimestamps) { ts.HardwareStopIssued = time.Now() })
 
 	a.publishAuditEvent(trigger)
 	a.sendStateNotification(haltErr)
+	a.completeRevocationMeasurement()
 
-	// Complete revocation measurement and record
-	if a.currentRevocation != nil && a.revocationMetrics != nil {
-		a.currentRevocation.SafeStopCompleted = time.Now()
-		a.revocationMetrics.Record(*a.currentRevocation)
-		a.currentRevocation = nil
-	}
-
+	duration := time.Since(start)
 	a.logger.Info("safe-stop transition complete",
 		zap.Duration("duration", duration),
 		zap.Bool("under_100ms", duration < 100*time.Millisecond))

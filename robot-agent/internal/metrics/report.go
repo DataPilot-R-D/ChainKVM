@@ -44,28 +44,14 @@ func (c *RevocationCollector) GenerateReport(targets LatencyTargets) RevocationR
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	totalStats := calculateStats(c.measurements, func(t RevocationTimestamps) time.Duration {
-		return t.Calculate().Total
-	})
+	stats := func(extract func(PropagationTimes) time.Duration) RevocationStats {
+		return calculateStats(c.measurements, func(t RevocationTimestamps) time.Duration {
+			return extract(t.Calculate())
+		})
+	}
 
-	safeStopStats := calculateStats(c.measurements, func(t RevocationTimestamps) time.Duration {
-		return t.Calculate().SafeStopExecution
-	})
-
-	handlerStats := calculateStats(c.measurements, func(t RevocationTimestamps) time.Duration {
-		return t.Calculate().HandlerProcessing
-	})
-
-	transportStats := calculateStats(c.measurements, func(t RevocationTimestamps) time.Duration {
-		return t.Calculate().TransportTeardown
-	})
-
-	sessionStats := calculateStats(c.measurements, func(t RevocationTimestamps) time.Duration {
-		return t.Calculate().SessionTeardown
-	})
-
-	meetsTarget := totalStats.P95 <= targets.TotalP95 &&
-		safeStopStats.Max <= targets.SafeStopMax
+	totalStats := stats(func(p PropagationTimes) time.Duration { return p.Total })
+	safeStopStats := stats(func(p PropagationTimes) time.Duration { return p.SafeStopExecution })
 
 	return RevocationReport{
 		GeneratedAt: time.Now().UTC(),
@@ -73,11 +59,11 @@ func (c *RevocationCollector) GenerateReport(targets LatencyTargets) RevocationR
 		Total:       totalStats,
 		SafeStop:    safeStopStats,
 		Breakdown: PropagationStats{
-			HandlerProcessing: handlerStats,
-			TransportTeardown: transportStats,
-			SessionTeardown:   sessionStats,
+			HandlerProcessing: stats(func(p PropagationTimes) time.Duration { return p.HandlerProcessing }),
+			TransportTeardown: stats(func(p PropagationTimes) time.Duration { return p.TransportTeardown }),
+			SessionTeardown:   stats(func(p PropagationTimes) time.Duration { return p.SessionTeardown }),
 		},
-		MeetsTarget: meetsTarget,
+		MeetsTarget: totalStats.P95 <= targets.TotalP95 && safeStopStats.Max <= targets.SafeStopMax,
 		Targets:     targets,
 	}
 }
