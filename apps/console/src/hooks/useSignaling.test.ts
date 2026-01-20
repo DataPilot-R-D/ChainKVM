@@ -178,7 +178,12 @@ describe('useSignaling', () => {
       renderHook(() => useSignaling({ url: 'ws://localhost:8080/signal' }));
       act(() => { MockWebSocket.instances[0].simulateOpen(); });
       act(() => { MockWebSocket.instances[0].onmessage?.({ data: 'not json' }); });
-      expect(console.error).toHaveBeenCalledWith('[Signaling] Invalid message format');
+      expect(console.error).toHaveBeenCalledWith(
+        '[Signaling] Failed to parse message:',
+        expect.any(String),
+        'Preview:',
+        'not json'
+      );
     });
   });
 

@@ -79,7 +79,9 @@ export function useFrameTimestamps(
 
         // Validate structure before using
         if (!isFrameTimestampMessage(msg)) {
-          // Silently ignore non-timestamp messages
+          // Silently ignore non-timestamp messages (e.g., ping/pong, control messages).
+          // This is intentional: DataChannel may carry multiple message types,
+          // and only 'frame_timestamp' messages are relevant here.
           if (typeof msg === 'object' && msg !== null && msg.type !== 'frame_timestamp') {
             return;
           }
@@ -101,7 +103,9 @@ export function useFrameTimestamps(
           }
           receivedFirstRef.current = true;
 
-          // Keep last 100 timestamps (ring buffer)
+          // Keep last 100 timestamps (ring buffer).
+          // Math: slice(-99) keeps up to 99 elements, + 1 new = max 100.
+          // This bounds memory usage while preserving enough history for statistics.
           const newTimestamps = [...prev.timestamps.slice(-99), msg.timestamp];
 
           return {

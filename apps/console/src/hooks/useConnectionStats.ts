@@ -17,6 +17,7 @@ export interface UseConnectionStatsOptions {
 export interface UseConnectionStatsReturn {
   stats: ConnectionStats | null;
   healthStatus: HealthStatus;
+  error: string | null;
 }
 
 type GetStatsFn = () => Promise<RTCStatsReport | null>;
@@ -86,6 +87,7 @@ export function useConnectionStats(
 
   const [stats, setStats] = useState<ConnectionStats | null>(null);
   const [healthStatus, setHealthStatus] = useState<HealthStatus>('unknown');
+  const [error, setError] = useState<string | null>(null);
 
   const prevBytesRef = useRef<number>(0);
   const prevTimestampRef = useRef<number>(0);
@@ -112,8 +114,11 @@ export function useConnectionStats(
 
       setStats({ rttMs: raw.rttMs, packetLossPercent, videoBitrateMbps, frameRate: raw.frameRate });
       setHealthStatus(raw.rttMs > 0 ? calculateHealthStatus(raw.rttMs) : 'unknown');
-    } catch (error) {
-      console.error('[useConnectionStats] Failed to collect WebRTC stats:', error);
+      setError(null);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      console.error('[useConnectionStats] Failed to collect WebRTC stats:', err);
+      setError(errorMessage);
     }
   }, [getStats]);
 
@@ -125,5 +130,5 @@ export function useConnectionStats(
     return () => clearInterval(interval);
   }, [enabled, getStats, intervalMs, collectStats]);
 
-  return { stats, healthStatus };
+  return { stats, healthStatus, error };
 }
