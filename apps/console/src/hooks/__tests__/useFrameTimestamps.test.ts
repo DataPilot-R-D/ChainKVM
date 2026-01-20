@@ -216,4 +216,40 @@ describe('useFrameTimestamps', () => {
     expect(result.current.lastSequence).toBe(20);
     expect(result.current.droppedMessages).toBe(0);
   });
+
+  it('should handle message burst after sequence gap', async () => {
+    const { result } = renderHook(() => useFrameTimestamps(mockDataChannel));
+
+    // Send first message
+    const msg1: FrameTimestampMessage = {
+      type: 'frame_timestamp',
+      timestamp: Date.now(),
+      frame_id: 1,
+      sequence_number: 1,
+    };
+    messageHandlers[0](new MessageEvent('message', { data: JSON.stringify(msg1) }));
+
+    await waitFor(() => {
+      expect(result.current.timestamps).toHaveLength(1);
+    });
+
+    // Simulate dropped messages 2-5, then burst 6-10
+    for (let i = 6; i <= 10; i++) {
+      const msg: FrameTimestampMessage = {
+        type: 'frame_timestamp',
+        timestamp: Date.now() + i,
+        frame_id: i,
+        sequence_number: i,
+      };
+      messageHandlers[0](new MessageEvent('message', { data: JSON.stringify(msg) }));
+    }
+
+    await waitFor(() => {
+      expect(result.current.timestamps).toHaveLength(6);
+    });
+
+    // Should detect 4 dropped messages (2, 3, 4, 5)
+    expect(result.current.droppedMessages).toBe(4);
+    expect(result.current.lastSequence).toBe(10);
+  });
 });

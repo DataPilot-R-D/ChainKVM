@@ -111,8 +111,8 @@ export function useVideoLatency(
       // Detect clock offset (negative latencies)
       let clockOffset = null;
       const negativeSamples = samples.filter((s) => s < 0);
-      if (cfg.detectClockOffset && negativeSamples.length > samples.length / 4) {
-        // More than 25% negative samples indicates clock offset
+      if (cfg.detectClockOffset && negativeSamples.length >= samples.length / 4) {
+        // 25% or more negative samples indicates clock offset
         clockOffset = Math.abs(Math.min(...negativeSamples));
         if (clockOffset > 100) {
           console.warn(

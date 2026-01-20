@@ -188,4 +188,59 @@ describe('useVideoLatency', () => {
     expect(result.current.sampleCount).toBe(20);
     expect(result.current.currentLatency).not.toBeNull();
   });
+
+  it('should detect clock offset at exactly 25% threshold', async () => {
+    const { result } = renderHook(() =>
+      useVideoLatency(mockVideoRef, mockDataChannel, {
+        samplingRate: 10,
+        detectClockOffset: true,
+        maxSamples: 100,
+      })
+    );
+
+    const now = Date.now();
+    // Send exactly 25 negative latencies (future timestamps) out of 100
+    for (let i = 1; i <= 100; i++) {
+      if (i <= 25) {
+        sendTimestamp(now + 500, i, i); // Negative latency
+      } else {
+        sendTimestamp(now - 100, i, i); // Positive latency
+      }
+    }
+
+    await waitFor(() => {
+      expect(result.current.sampleCount).toBe(100);
+    });
+
+    // Exactly 25% should trigger clock offset detection
+    expect(result.current.clockOffset).not.toBeNull();
+    expect(result.current.clockOffset).toBeGreaterThan(0);
+  });
+
+  it('should not detect clock offset at 24% threshold', async () => {
+    const { result } = renderHook(() =>
+      useVideoLatency(mockVideoRef, mockDataChannel, {
+        samplingRate: 10,
+        detectClockOffset: true,
+        maxSamples: 100,
+      })
+    );
+
+    const now = Date.now();
+    // Send only 24 negative latencies (future timestamps) out of 100
+    for (let i = 1; i <= 100; i++) {
+      if (i <= 24) {
+        sendTimestamp(now + 500, i, i); // Negative latency
+      } else {
+        sendTimestamp(now - 100, i, i); // Positive latency
+      }
+    }
+
+    await waitFor(() => {
+      expect(result.current.sampleCount).toBe(100);
+    });
+
+    // Only 24% should NOT trigger clock offset detection
+    expect(result.current.clockOffset).toBeNull();
+  });
 });
