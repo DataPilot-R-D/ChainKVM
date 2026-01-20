@@ -1,67 +1,44 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { useVideoLatency } from '../useVideoLatency';
-import { extractTimestamp } from '../../utils/timestampOCR';
+import { FrameTimestampMessage } from '../useFrameTimestamps';
 import { RefObject } from 'react';
 import { vi } from 'vitest';
 
-// Mock the extractTimestamp function
-vi.mock('../../utils/timestampOCR');
-
-const mockExtractTimestamp = vi.mocked(extractTimestamp);
-
 describe('useVideoLatency', () => {
-  let mockVideo: HTMLVideoElement;
   let mockVideoRef: RefObject<HTMLVideoElement>;
-  let mockCanvas: HTMLCanvasElement;
-  let mockCtx: CanvasRenderingContext2D;
+  let mockDataChannel: RTCDataChannel;
+  let messageHandlers: ((event: MessageEvent) => void)[];
 
   beforeEach(() => {
-    // Mock canvas context
-    mockCtx = {
-      drawImage: vi.fn(),
-      getImageData: vi.fn(() => ({
-        data: new Uint8ClampedArray(200 * 50 * 4),
-        width: 200,
-        height: 50,
-        colorSpace: 'srgb',
-      })),
+    mockVideoRef = { current: null };
+    messageHandlers = [];
+
+    mockDataChannel = {
+      addEventListener: vi.fn((event: string, handler: (event: MessageEvent) => void) => {
+        if (event === 'message') {
+          messageHandlers.push(handler);
+        }
+      }),
+      removeEventListener: vi.fn(),
     } as any;
-
-    // Mock canvas
-    mockCanvas = {
-      width: 200,
-      height: 50,
-      getContext: vi.fn(() => mockCtx),
-    } as any;
-
-    // Save original createElement
-    const originalCreateElement = document.createElement.bind(document);
-
-    // Mock document.createElement to return our mock canvas
-    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
-      if (tagName === 'canvas') {
-        return mockCanvas as any;
-      }
-      return originalCreateElement(tagName);
-    });
-
-    mockVideo = originalCreateElement('video') as HTMLVideoElement;
-    Object.defineProperty(mockVideo, 'videoWidth', { value: 1280, writable: true });
-    Object.defineProperty(mockVideo, 'videoHeight', { value: 720, writable: true });
-    Object.defineProperty(mockVideo, 'paused', { value: false, writable: true });
-    Object.defineProperty(mockVideo, 'ended', { value: false, writable: true });
-
-    mockVideoRef = { current: mockVideo };
-    mockExtractTimestamp.mockClear();
   });
 
   afterEach(() => {
     vi.clearAllMocks();
-    vi.restoreAllMocks();
   });
 
+  function sendTimestamp(timestamp: number, frameId: number, sequence: number) {
+    const msg: FrameTimestampMessage = {
+      type: 'frame_timestamp',
+      timestamp,
+      frame_id: frameId,
+      sequence_number: sequence,
+    };
+    messageHandlers[0](new MessageEvent('message', { data: JSON.stringify(msg) }));
+  }
+
   it('should initialize with null values', () => {
-    const { result } = renderHook(() => useVideoLatency(mockVideoRef));
+    const { result } = renderHook(() => useVideoLatency(mockVideoRef, mockDataChannel));
 
     expect(result.current.currentLatency).toBeNull();
     expect(result.current.averageLatency).toBeNull();
@@ -70,30 +47,26 @@ describe('useVideoLatency', () => {
     expect(result.current.sampleCount).toBe(0);
     expect(result.current.clockOffset).toBeNull();
   });
-  it('should not sample when video ref is null', () => {
-    const nullRef: RefObject<HTMLVideoElement> = { current: null };
-    const { result } = renderHook(() => useVideoLatency(nullRef));
+
+  it('should handle null dataChannel gracefully', () => {
+    const { result } = renderHook(() => useVideoLatency(mockVideoRef, null));
 
     expect(result.current.sampleCount).toBe(0);
-    expect(mockExtractTimestamp).not.toHaveBeenCalled();
+    expect(result.current.currentLatency).toBeNull();
   });
 
-  it('should calculate latency from extracted timestamp', async () => {
-    // Mock timestamp extraction to return a timestamp 100ms in the past
-    mockExtractTimestamp.mockImplementation(() => {
-      return Date.now() - 100;
-    });
-
+  it('should calculate latency from DataChannel timestamp', async () => {
     const { result } = renderHook(() =>
-      useVideoLatency(mockVideoRef, { samplingRate: 10 })
+      useVideoLatency(mockVideoRef, mockDataChannel, { samplingRate: 10 })
     );
 
-    await waitFor(
-      () => {
-        expect(result.current.currentLatency).not.toBeNull();
-      },
-      { timeout: 1000 }
-    );
+    // Send timestamp 100ms in the past
+    const pastTimestamp = Date.now() - 100;
+    sendTimestamp(pastTimestamp, 1, 1);
+
+    await waitFor(() => {
+      expect(result.current.currentLatency).not.toBeNull();
+    });
 
     // Verify latency is approximately 100ms (with some tolerance)
     expect(result.current.currentLatency).toBeGreaterThan(80);
@@ -101,49 +74,40 @@ describe('useVideoLatency', () => {
   });
 
   it('should calculate rolling average', async () => {
-    let callCount = 0;
-    mockExtractTimestamp.mockImplementation(() => {
-      // Return timestamps with increasing latencies: 100ms, 110ms, 120ms
-      callCount++;
-      return Date.now() - (100 + callCount * 10);
-    });
-
     const { result } = renderHook(() =>
-      useVideoLatency(mockVideoRef, { samplingRate: 10 })
+      useVideoLatency(mockVideoRef, mockDataChannel, { samplingRate: 10 })
     );
 
-    await waitFor(
-      () => {
-        expect(result.current.sampleCount).toBeGreaterThan(2);
-      },
-      { timeout: 1000 }
-    );
+    // Send timestamps with increasing latencies: 100ms, 110ms, 120ms
+    const now = Date.now();
+    sendTimestamp(now - 100, 1, 1);
+    sendTimestamp(now - 110, 2, 2);
+    sendTimestamp(now - 120, 3, 3);
+
+    await waitFor(() => {
+      expect(result.current.sampleCount).toBeGreaterThan(2);
+    });
 
     // Average should be calculated
     expect(result.current.averageLatency).not.toBeNull();
     expect(result.current.averageLatency).toBeGreaterThan(80);
-    expect(result.current.averageLatency).toBeLessThan(200);
+    expect(result.current.averageLatency).toBeLessThan(150);
   });
 
   it('should track min and max latencies', async () => {
-    let callCount = 0;
-    mockExtractTimestamp.mockImplementation(() => {
-      callCount++;
-      // Vary latencies: 50ms, 150ms, 100ms
-      const latencies = [50, 150, 100];
-      return Date.now() - latencies[callCount % 3];
-    });
-
     const { result } = renderHook(() =>
-      useVideoLatency(mockVideoRef, { samplingRate: 10 })
+      useVideoLatency(mockVideoRef, mockDataChannel, { samplingRate: 10 })
     );
 
-    await waitFor(
-      () => {
-        expect(result.current.sampleCount).toBeGreaterThan(3);
-      },
-      { timeout: 1000 }
-    );
+    // Vary latencies: 50ms, 150ms, 100ms
+    const now = Date.now();
+    sendTimestamp(now - 50, 1, 1);
+    sendTimestamp(now - 150, 2, 2);
+    sendTimestamp(now - 100, 3, 3);
+
+    await waitFor(() => {
+      expect(result.current.sampleCount).toBeGreaterThan(2);
+    });
 
     expect(result.current.minLatency).not.toBeNull();
     expect(result.current.maxLatency).not.toBeNull();
@@ -151,21 +115,22 @@ describe('useVideoLatency', () => {
   });
 
   it('should detect clock offset with negative latencies', async () => {
-    // Mock timestamp extraction to return future timestamps (negative latency)
-    mockExtractTimestamp.mockImplementation(() => {
-      return Date.now() + 500; // 500ms in the future
-    });
-
     const { result } = renderHook(() =>
-      useVideoLatency(mockVideoRef, { samplingRate: 10, detectClockOffset: true })
+      useVideoLatency(mockVideoRef, mockDataChannel, {
+        samplingRate: 10,
+        detectClockOffset: true,
+      })
     );
 
-    await waitFor(
-      () => {
-        expect(result.current.sampleCount).toBeGreaterThan(5);
-      },
-      { timeout: 1000 }
-    );
+    // Send future timestamps (negative latency) - 30 samples to exceed 25% threshold
+    const now = Date.now();
+    for (let i = 1; i <= 30; i++) {
+      sendTimestamp(now + 500, i, i); // 500ms in the future
+    }
+
+    await waitFor(() => {
+      expect(result.current.sampleCount).toBeGreaterThan(5);
+    });
 
     // Should detect clock offset
     expect(result.current.clockOffset).not.toBeNull();
@@ -173,40 +138,28 @@ describe('useVideoLatency', () => {
   });
 
   it('should respect maxSamples configuration', async () => {
-    mockExtractTimestamp.mockImplementation(() => {
-      return Date.now() - 100;
-    });
-
     const maxSamples = 10;
     const { result } = renderHook(() =>
-      useVideoLatency(mockVideoRef, { samplingRate: 20, maxSamples })
+      useVideoLatency(mockVideoRef, mockDataChannel, { samplingRate: 20, maxSamples })
     );
 
-    await waitFor(
-      () => {
-        expect(result.current.sampleCount).toBeGreaterThan(0);
-      },
-      { timeout: 1000 }
-    );
+    // Send 15 timestamps
+    const now = Date.now();
+    for (let i = 1; i <= 15; i++) {
+      sendTimestamp(now - 100, i, i);
+    }
 
-    // Wait longer to ensure we exceed maxSamples attempts
-    await waitFor(
-      () => {
-        expect(result.current.sampleCount).toBeGreaterThan(5);
-      },
-      { timeout: 2000 }
-    );
+    await waitFor(() => {
+      expect(result.current.sampleCount).toBeGreaterThan(5);
+    });
 
     // Sample count should not exceed maxSamples
     expect(result.current.sampleCount).toBeLessThanOrEqual(maxSamples);
   });
 
-  it('should handle extraction failures gracefully', async () => {
-    // Mock extraction to fail (return null)
-    mockExtractTimestamp.mockReturnValue(null);
-
+  it('should handle no timestamps gracefully', async () => {
     const { result } = renderHook(() =>
-      useVideoLatency(mockVideoRef, { samplingRate: 10 })
+      useVideoLatency(mockVideoRef, mockDataChannel, { samplingRate: 10 })
     );
 
     await new Promise((resolve) => setTimeout(resolve, 500));
@@ -216,34 +169,22 @@ describe('useVideoLatency', () => {
     expect(result.current.sampleCount).toBe(0);
   });
 
-  it('should not sample when video is paused', async () => {
-    Object.defineProperty(mockVideo, 'paused', { value: true, writable: true });
+  it('should handle rapid timestamp bursts', async () => {
+    const { result } = renderHook(() =>
+      useVideoLatency(mockVideoRef, mockDataChannel, { samplingRate: 10 })
+    );
 
-    mockExtractTimestamp.mockImplementation(() => {
-      return Date.now() - 100;
+    // Send 20 timestamps rapidly
+    const now = Date.now();
+    for (let i = 1; i <= 20; i++) {
+      sendTimestamp(now - 100, i, i);
+    }
+
+    await waitFor(() => {
+      expect(result.current.sampleCount).toBeGreaterThan(15);
     });
 
-    const { result } = renderHook(() =>
-      useVideoLatency(mockVideoRef, { samplingRate: 10 })
-    );
-
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    // Should not have collected any samples
-    expect(result.current.sampleCount).toBe(0);
-  });
-
-  it('should cleanup on unmount', () => {
-    const cancelAnimationFrameSpy = vi.spyOn(window, 'cancelAnimationFrame');
-
-    const { unmount } = renderHook(() =>
-      useVideoLatency(mockVideoRef, { samplingRate: 10 })
-    );
-
-    unmount();
-
-    expect(cancelAnimationFrameSpy).toHaveBeenCalled();
-
-    cancelAnimationFrameSpy.mockRestore();
+    expect(result.current.sampleCount).toBe(20);
+    expect(result.current.currentLatency).not.toBeNull();
   });
 });
