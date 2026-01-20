@@ -17,8 +17,9 @@ const (
 	TypeEStop    MessageType = "e_stop"
 
 	// Measurement
-	TypePing MessageType = "ping"
-	TypePong MessageType = "pong"
+	TypePing           MessageType = "ping"
+	TypePong           MessageType = "pong"
+	TypeFrameTimestamp MessageType = "frame_timestamp"
 
 	// Response
 	TypeAck   MessageType = "ack"
@@ -109,6 +110,14 @@ type PongMessage struct {
 	Seq   uint32      `json:"seq"`
 	TMono int64       `json:"t_mono"`
 	TRecv int64       `json:"t_recv"`
+}
+
+// FrameTimestampMessage sends video frame timestamp for latency measurement.
+type FrameTimestampMessage struct {
+	Type           MessageType `json:"type"`
+	Timestamp      int64       `json:"timestamp"`        // Unix milliseconds when frame captured
+	FrameID        uint64      `json:"frame_id"`         // Monotonic frame counter
+	SequenceNumber uint64      `json:"sequence_number"`  // Message sequence for loss detection
 }
 
 // AckMessage acknowledges a command.

@@ -67,8 +67,13 @@ export function useSignaling({
       let msg: SignalingMessage;
       try {
         msg = JSON.parse(event.data) as SignalingMessage;
-      } catch {
-        console.error('[Signaling] Invalid message format');
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const preview =
+          typeof event.data === 'string'
+            ? event.data.substring(0, 100)
+            : String(event.data).substring(0, 100);
+        console.error('[Signaling] Failed to parse message:', errorMessage, 'Preview:', preview);
         return;
       }
 

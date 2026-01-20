@@ -30,6 +30,7 @@ export interface UseWebRTCOptions {
 export interface UseWebRTCReturn {
   connectionState: RTCPeerConnectionState;
   isConnected: boolean;
+  dataChannel: RTCDataChannel | null;
   dataChannelState: RTCDataChannelState;
   remoteStream: MediaStream | null;
   reconnectAttempts: number;
@@ -66,6 +67,7 @@ export function useWebRTC({
 
   const [connectionState, setConnectionState] =
     useState<RTCPeerConnectionState>('new');
+  const [dataChannel, setDataChannel] = useState<RTCDataChannel | null>(null);
   const [dataChannelState, setDataChannelState] =
     useState<RTCDataChannelState>('closed');
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
@@ -242,6 +244,7 @@ export function useWebRTC({
 
       const channel = pc.createDataChannel(label, options);
       dataChannelRef.current = channel;
+      setDataChannel(channel);
 
       setDataChannelState('connecting');
 
@@ -268,6 +271,7 @@ export function useWebRTC({
     if (channel) {
       channel.close();
     }
+    setDataChannel(null);
 
     const pc = peerConnectionRef.current;
     if (pc) {
@@ -297,6 +301,7 @@ export function useWebRTC({
   return {
     connectionState,
     isConnected,
+    dataChannel,
     dataChannelState,
     remoteStream,
     reconnectAttempts,

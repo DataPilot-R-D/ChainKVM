@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { useVideoLatency } from '../../hooks/useVideoLatency';
 import './VideoRenderer.css';
 
 export interface VideoRendererProps {
   stream?: MediaStream | null;
+  dataChannel?: RTCDataChannel | null;
   showStats?: boolean;
   error?: string | null;
   onStreamError?: (reason: string) => void;
@@ -16,6 +18,7 @@ interface VideoStats {
 
 export function VideoRenderer({
   stream,
+  dataChannel,
   showStats = true,
   error,
   onStreamError,
@@ -25,6 +28,11 @@ export function VideoRenderer({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [stats, setStats] = useState<VideoStats | null>(null);
   const [isStreamActive, setIsStreamActive] = useState(false);
+
+  // Measure video latency (M6-003)
+  const latencyData = useVideoLatency(videoRef, dataChannel ?? null, {
+    samplingRate: 5,
+  });
 
   // Attach stream to video element
   useEffect(() => {
@@ -137,6 +145,31 @@ export function VideoRenderer({
             {stats.width}x{stats.height}
           </span>
           <span data-testid="fps-indicator">{Math.round(stats.frameRate)} FPS</span>
+          {latencyData.currentLatency !== null && (
+            <span data-testid="latency-indicator">
+              {Math.round(latencyData.currentLatency)}ms
+            </span>
+          )}
+          {latencyData.averageLatency !== null && (
+            <span data-testid="avg-latency-indicator">
+              avg: {Math.round(latencyData.averageLatency)}ms
+            </span>
+          )}
+          {latencyData.clockOffset !== null && latencyData.clockOffset > 100 && (
+            <span data-testid="clock-offset-warning" className="video-renderer__stats--warning">
+              ⚠ Clock offset: {Math.round(latencyData.clockOffset)}ms
+            </span>
+          )}
+          {latencyData.error && (
+            <span data-testid="latency-error" className="video-renderer__stats--warning">
+              ⚠ Latency error: {latencyData.error}
+            </span>
+          )}
+          {latencyData.timestampBuffer && latencyData.timestampBuffer.parseErrors > 0 && (
+            <span data-testid="timestamp-errors" className="video-renderer__stats--warning">
+              ⚠ Timestamp errors: {latencyData.timestampBuffer.parseErrors}
+            </span>
+          )}
         </div>
       )}
 
