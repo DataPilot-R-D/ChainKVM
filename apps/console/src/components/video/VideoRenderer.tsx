@@ -4,6 +4,7 @@ import './VideoRenderer.css';
 
 export interface VideoRendererProps {
   stream?: MediaStream | null;
+  dataChannel?: RTCDataChannel | null;
   showStats?: boolean;
   error?: string | null;
   onStreamError?: (reason: string) => void;
@@ -17,6 +18,7 @@ interface VideoStats {
 
 export function VideoRenderer({
   stream,
+  dataChannel,
   showStats = true,
   error,
   onStreamError,
@@ -28,7 +30,9 @@ export function VideoRenderer({
   const [isStreamActive, setIsStreamActive] = useState(false);
 
   // Measure video latency (M6-003)
-  const latencyData = useVideoLatency(videoRef, { samplingRate: 5 });
+  const latencyData = useVideoLatency(videoRef, dataChannel ?? null, {
+    samplingRate: 5,
+  });
 
   // Attach stream to video element
   useEffect(() => {
@@ -154,6 +158,11 @@ export function VideoRenderer({
           {latencyData.clockOffset !== null && latencyData.clockOffset > 100 && (
             <span data-testid="clock-offset-warning" className="video-renderer__stats--warning">
               ⚠ Clock offset: {Math.round(latencyData.clockOffset)}ms
+            </span>
+          )}
+          {latencyData.error && (
+            <span data-testid="latency-error" className="video-renderer__stats--warning">
+              ⚠ Latency error: {latencyData.error}
             </span>
           )}
         </div>
