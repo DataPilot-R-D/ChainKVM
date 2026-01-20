@@ -46,6 +46,7 @@ describe('useVideoLatency', () => {
     expect(result.current.maxLatency).toBeNull();
     expect(result.current.sampleCount).toBe(0);
     expect(result.current.clockOffset).toBeNull();
+    expect(result.current.error).toBeNull();
   });
 
   it('should handle null dataChannel gracefully', () => {
