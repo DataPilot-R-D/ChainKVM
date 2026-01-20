@@ -165,6 +165,11 @@ export function VideoRenderer({
               ⚠ Latency error: {latencyData.error}
             </span>
           )}
+          {latencyData.timestampBuffer && latencyData.timestampBuffer.parseErrors > 0 && (
+            <span data-testid="timestamp-errors" className="video-renderer__stats--warning">
+              ⚠ Timestamp errors: {latencyData.timestampBuffer.parseErrors}
+            </span>
+          )}
         </div>
       )}
 

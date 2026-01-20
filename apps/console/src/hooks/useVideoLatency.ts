@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, RefObject } from 'react';
-import { useFrameTimestamps } from './useFrameTimestamps';
+import { useFrameTimestamps, TimestampBuffer } from './useFrameTimestamps';
 
 /**
  * Video latency measurement data.
@@ -19,6 +19,8 @@ export interface VideoLatencyData {
   clockOffset: number | null;
   /** Error message if latency calculation failed */
   error: string | null;
+  /** Timestamp buffer with parse error tracking */
+  timestampBuffer: TimestampBuffer;
 }
 
 /**
@@ -65,6 +67,13 @@ export function useVideoLatency(
     sampleCount: 0,
     clockOffset: null,
     error: null,
+    timestampBuffer: {
+      timestamps: [],
+      lastSequence: 0,
+      droppedMessages: 0,
+      parseErrors: 0,
+      lastError: null,
+    },
   });
 
   const samplesRef = useRef<number[]>([]);
@@ -72,73 +81,75 @@ export function useVideoLatency(
   const lastProcessedCountRef = useRef<number>(0);
 
   useEffect(() => {
-    try {
-      // Process new timestamps from DataChannel
-      const newTimestampCount = timestampBuffer.timestamps.length;
-
-      if (newTimestampCount === 0 || newTimestampCount === lastProcessedCountRef.current) {
-        return;
-      }
-
-      // Get newly received timestamps
-      const newTimestamps = timestampBuffer.timestamps.slice(lastProcessedCountRef.current);
-      lastProcessedCountRef.current = newTimestampCount;
-
-      // Calculate latency for each new timestamp
-      const currentTime = Date.now();
-      const samples = samplesRef.current;
-
-      for (const timestamp of newTimestamps) {
-        const latency = currentTime - timestamp;
-        samples.push(latency);
-
-        // Keep only last maxSamples
-        if (samples.length > cfg.maxSamples) {
-          samples.shift();
-        }
-      }
-
-      // Get the most recent latency for currentLatency
-      const latency = samples[samples.length - 1];
-
-      // Calculate statistics
-      const validSamples = samples.filter((s) => s >= 0 || !cfg.detectClockOffset);
-      const sum = validSamples.reduce((acc, s) => acc + s, 0);
-      const avg = validSamples.length > 0 ? sum / validSamples.length : null;
-      const min = validSamples.length > 0 ? Math.min(...validSamples) : null;
-      const max = validSamples.length > 0 ? Math.max(...validSamples) : null;
-
-      // Detect clock offset (negative latencies)
-      let clockOffset = null;
-      const negativeSamples = samples.filter((s) => s < 0);
-      if (cfg.detectClockOffset && negativeSamples.length >= samples.length / 4) {
-        // 25% or more negative samples indicates clock offset
-        clockOffset = Math.abs(Math.min(...negativeSamples));
-        if (clockOffset > 100) {
-          console.warn(
-            `[VideoLatency] Large clock offset detected: ${clockOffset}ms. ` +
-              'Measurements may be inaccurate. Consider NTP sync.'
-          );
-        }
-      }
-
-      setLatencyData({
-        currentLatency: latency,
-        averageLatency: avg,
-        minLatency: min,
-        maxLatency: max,
-        sampleCount: samples.length,
-        clockOffset,
-        error: null,
-      });
-    } catch (error) {
-      console.error('[VideoLatency] Latency calculation failed:', error);
-      setLatencyData((prev) => ({
-        ...prev,
-        error: error instanceof Error ? error.message : String(error),
-      }));
+    // Validate configuration
+    if (cfg.maxSamples <= 0) {
+      console.error('[VideoLatency] Invalid maxSamples:', cfg.maxSamples);
+      return;
     }
+
+    // Process new timestamps from DataChannel
+    const newTimestampCount = timestampBuffer.timestamps.length;
+
+    if (newTimestampCount === 0 || newTimestampCount === lastProcessedCountRef.current) {
+      return;
+    }
+
+    // Get newly received timestamps
+    const newTimestamps = timestampBuffer.timestamps.slice(lastProcessedCountRef.current);
+    lastProcessedCountRef.current = newTimestampCount;
+
+    // Calculate latency for each new timestamp
+    const currentTime = Date.now();
+    const samples = samplesRef.current;
+
+    for (const timestamp of newTimestamps) {
+      const latency = currentTime - timestamp;
+      samples.push(latency);
+
+      // Keep only last maxSamples
+      if (samples.length > cfg.maxSamples) {
+        samples.shift();
+      }
+    }
+
+    // Get the most recent latency for currentLatency
+    const latency = samples[samples.length - 1];
+
+    // Calculate statistics
+    const validSamples = samples.filter((s) => s >= 0 || !cfg.detectClockOffset);
+    const sum = validSamples.reduce((acc, s) => acc + s, 0);
+    const avg = validSamples.length > 0 ? sum / validSamples.length : null;
+    const min = validSamples.length > 0 ? Math.min(...validSamples) : null;
+    const max = validSamples.length > 0 ? Math.max(...validSamples) : null;
+
+    // Detect clock offset (negative latencies)
+    let clockOffset = null;
+    const negativeSamples = samples.filter((s) => s < 0);
+    if (cfg.detectClockOffset && negativeSamples.length >= samples.length / 4) {
+      // 25% or more negative samples indicates clock offset
+      clockOffset = Math.abs(Math.min(...negativeSamples));
+      if (clockOffset > 100) {
+        console.warn(
+          `[VideoLatency] Large clock offset detected: ${clockOffset}ms. ` +
+            'Measurements may be inaccurate. Consider NTP sync.'
+        );
+      }
+    }
+
+    setLatencyData({
+      currentLatency: latency,
+      averageLatency: avg,
+      minLatency: min,
+      maxLatency: max,
+      sampleCount: samples.length,
+      clockOffset,
+      error: null,
+      timestampBuffer: timestampBuffer,
+    });
   }, [timestampBuffer.timestamps, cfg.maxSamples, cfg.detectClockOffset]);
 
-  return latencyData;
+  return {
+    ...latencyData,
+    timestampBuffer, // Always return fresh timestampBuffer
+  };
 }

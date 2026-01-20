@@ -219,3 +219,44 @@ func TestTimestampSender_ConcurrentAccess(t *testing.T) {
 		t.Errorf("Expected 300 sent, got %d", sentCount)
 	}
 }
+
+func TestTimestampSender_JSONStructureCompatibility(t *testing.T) {
+	sender := &mockSender{}
+	ts := NewTimestampSender(sender, 1)
+
+	frameTime := time.Date(2025, 1, 20, 12, 0, 0, 0, time.UTC)
+	if err := ts.SendFrameTimestamp(frameTime); err != nil {
+		t.Fatalf("SendFrameTimestamp failed: %v", err)
+	}
+
+	if len(sender.sent) != 1 {
+		t.Fatalf("Expected 1 message sent, got %d", len(sender.sent))
+	}
+
+	// Unmarshal into raw map to verify exact structure
+	var raw map[string]interface{}
+	if err := json.Unmarshal(sender.sent[0], &raw); err != nil {
+		t.Fatalf("Failed to unmarshal JSON: %v", err)
+	}
+
+	// Verify all required fields exist with correct types
+	if raw["type"] != "frame_timestamp" {
+		t.Errorf("Expected type 'frame_timestamp', got %v", raw["type"])
+	}
+
+	// JSON numbers are unmarshaled as float64
+	if _, ok := raw["timestamp"].(float64); !ok {
+		t.Errorf("Expected timestamp to be number, got %T", raw["timestamp"])
+	}
+	if _, ok := raw["frame_id"].(float64); !ok {
+		t.Errorf("Expected frame_id to be number, got %T", raw["frame_id"])
+	}
+	if _, ok := raw["sequence_number"].(float64); !ok {
+		t.Errorf("Expected sequence_number to be number, got %T", raw["sequence_number"])
+	}
+
+	// Verify no unexpected fields (must have exactly 4 fields)
+	if len(raw) != 4 {
+		t.Errorf("Expected exactly 4 fields, got %d: %v", len(raw), raw)
+	}
+}

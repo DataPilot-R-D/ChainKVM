@@ -18,6 +18,27 @@ export interface TimestampBuffer {
   timestamps: number[];      // Last N timestamps (ring buffer)
   lastSequence: number;      // Last received sequence number
   droppedMessages: number;   // Count of detected dropped messages
+  parseErrors: number;       // Count of JSON parse failures
+  lastError: string | null;  // Most recent error message
+}
+
+/**
+ * Type guard to validate FrameTimestampMessage structure at runtime.
+ * Ensures Go and TypeScript protocol compatibility.
+ */
+function isFrameTimestampMessage(obj: unknown): obj is FrameTimestampMessage {
+  if (typeof obj !== 'object' || obj === null) {
+    return false;
+  }
+
+  const msg = obj as Record<string, unknown>;
+
+  return (
+    msg.type === 'frame_timestamp' &&
+    typeof msg.timestamp === 'number' &&
+    typeof msg.frame_id === 'number' &&
+    typeof msg.sequence_number === 'number'
+  );
 }
 
 /**
@@ -40,6 +61,8 @@ export function useFrameTimestamps(
     timestamps: [],
     lastSequence: 0,
     droppedMessages: 0,
+    parseErrors: 0,
+    lastError: null,
   });
 
   // Track if we've received first message (for drop detection)
@@ -52,10 +75,21 @@ export function useFrameTimestamps(
 
     const handleMessage = (event: MessageEvent) => {
       try {
-        const msg = JSON.parse(event.data) as FrameTimestampMessage;
+        const msg = JSON.parse(event.data);
 
-        // Ignore non-timestamp messages
-        if (msg.type !== 'frame_timestamp') {
+        // Validate structure before using
+        if (!isFrameTimestampMessage(msg)) {
+          // Silently ignore non-timestamp messages
+          if (typeof msg === 'object' && msg !== null && msg.type !== 'frame_timestamp') {
+            return;
+          }
+          // Log and track invalid structure
+          console.error('[FrameTimestamps] Invalid message structure:', msg);
+          setBuffer((prev) => ({
+            ...prev,
+            parseErrors: prev.parseErrors + 1,
+            lastError: 'Invalid message structure',
+          }));
           return;
         }
 
@@ -74,10 +108,18 @@ export function useFrameTimestamps(
             timestamps: newTimestamps,
             lastSequence: msg.sequence_number,
             droppedMessages: prev.droppedMessages + dropped,
+            parseErrors: prev.parseErrors,
+            lastError: null,
           };
         });
       } catch (error) {
         console.error('[FrameTimestamps] Failed to parse message:', error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        setBuffer((prev) => ({
+          ...prev,
+          parseErrors: prev.parseErrors + 1,
+          lastError: errorMessage.substring(0, 100),
+        }));
       }
     };
 
