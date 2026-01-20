@@ -70,7 +70,6 @@ describe('useVideoLatency', () => {
     expect(result.current.sampleCount).toBe(0);
     expect(result.current.clockOffset).toBeNull();
   });
-
   it('should not sample when video ref is null', () => {
     const nullRef: RefObject<HTMLVideoElement> = { current: null };
     const { result } = renderHook(() => useVideoLatency(nullRef));
@@ -97,10 +96,8 @@ describe('useVideoLatency', () => {
     );
 
     // Verify latency is approximately 100ms (with some tolerance)
-    if (result.current.currentLatency !== null) {
-      expect(result.current.currentLatency).toBeGreaterThan(80);
-      expect(result.current.currentLatency).toBeLessThan(120);
-    }
+    expect(result.current.currentLatency).toBeGreaterThan(80);
+    expect(result.current.currentLatency).toBeLessThan(120);
   });
 
   it('should calculate rolling average', async () => {
@@ -124,10 +121,8 @@ describe('useVideoLatency', () => {
 
     // Average should be calculated
     expect(result.current.averageLatency).not.toBeNull();
-    if (result.current.averageLatency !== null) {
-      expect(result.current.averageLatency).toBeGreaterThan(80);
-      expect(result.current.averageLatency).toBeLessThan(200);
-    }
+    expect(result.current.averageLatency).toBeGreaterThan(80);
+    expect(result.current.averageLatency).toBeLessThan(200);
   });
 
   it('should track min and max latencies', async () => {
@@ -152,10 +147,7 @@ describe('useVideoLatency', () => {
 
     expect(result.current.minLatency).not.toBeNull();
     expect(result.current.maxLatency).not.toBeNull();
-
-    if (result.current.minLatency !== null && result.current.maxLatency !== null) {
-      expect(result.current.minLatency).toBeLessThan(result.current.maxLatency);
-    }
+    expect(result.current.minLatency).toBeLessThan(result.current.maxLatency!);
   });
 
   it('should detect clock offset with negative latencies', async () => {
@@ -177,9 +169,7 @@ describe('useVideoLatency', () => {
 
     // Should detect clock offset
     expect(result.current.clockOffset).not.toBeNull();
-    if (result.current.clockOffset !== null) {
-      expect(result.current.clockOffset).toBeGreaterThan(0);
-    }
+    expect(result.current.clockOffset).toBeGreaterThan(0);
   });
 
   it('should respect maxSamples configuration', async () => {
@@ -219,7 +209,6 @@ describe('useVideoLatency', () => {
       useVideoLatency(mockVideoRef, { samplingRate: 10 })
     );
 
-    // Wait a bit
     await new Promise((resolve) => setTimeout(resolve, 500));
 
     // Should remain at initial state
